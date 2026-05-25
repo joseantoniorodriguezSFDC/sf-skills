@@ -58,9 +58,50 @@ cp -r /tmp/sf-skills/skills/developing-agentforce ~/.claude/skills/developing-ag
 
 This is the connection between Claude Code and your Salesforce org. It lets Claude query SOQL, read records, and inspect org configuration — all under your user's permissions and the org's security model.
 
-If you don't have it set up yet, run `/sf-hosted-mcp` after installing that skill — it walks you through creating the External Client App (ECA) in your org and registering the MCP server in Claude Code.
+#### Install the `sf-hosted-mcp` skill
 
-**Important:** After running `claude mcp add`, you must manually edit `~/.claude.json` to add the `clientSecret` and `scopes` fields to the OAuth block — the CLI does not add them automatically. The `sf-hosted-mcp` skill explains this step in detail.
+This skill handles the full MCP setup: it creates an External Client App (ECA) in your org and registers the MCP server in Claude Code.
+
+```bash
+git clone https://github.com/ro-mo-do/sf-skills.git /tmp/ro-mo-do-sf-skills
+cp -r /tmp/ro-mo-do-sf-skills/sf-hosted-mcp ~/.claude/skills/sf-hosted-mcp
+```
+
+Then restart Claude Code and run `/sf-hosted-mcp` to complete the setup.
+
+#### Fix the `~/.claude.json` OAuth block (required)
+
+After `sf-hosted-mcp` runs `claude mcp add`, the CLI writes an **incomplete OAuth block** — it omits `clientSecret` and `scopes`, which are both required for the Salesforce Hosted MCP Server. Without them the server will appear as "Needs authentication" with no way to connect.
+
+Open `~/.claude.json` in your editor:
+
+```bash
+code ~/.claude.json
+```
+
+> If `code` is not found, use `open ~/.claude.json` to open it in your default editor.
+
+Find the `salesforce-sobject-all` entry and make sure the `oauth` block has all four fields:
+
+```json
+"salesforce-sobject-all": {
+  "type": "http",
+  "url": "https://api.salesforce.com/platform/mcp/v1/platform/sobject-all",
+  "oauth": {
+    "clientId": "<YOUR-CONSUMER-KEY>",
+    "clientSecret": "<YOUR-CONSUMER-SECRET>",
+    "scopes": "mcp_api refresh_token offline_access",
+    "callbackPort": 8082
+  }
+}
+```
+
+**Where to find these values:**
+- `clientId` and `clientSecret` — Salesforce Setup → External Client App Manager → your ECA → OAuth Settings → click **"Click to reveal"** next to Consumer Secret
+- `scopes` — use exactly `mcp_api refresh_token offline_access` (space-separated, all lowercase)
+- `callbackPort` — use `8082` unless that port is already in use on your machine
+
+Save the file, restart Claude Code, then open `/mcp` — the server should now show a **Connect** button. Complete the OAuth flow in the browser that opens.
 
 ---
 
