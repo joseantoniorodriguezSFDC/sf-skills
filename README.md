@@ -19,6 +19,8 @@ Research any Salesforce feature end-to-end in a single command. Runs four search
 | **Web** | Recent release notes, blog posts, and Salesforce Help articles from the past year |
 | **Slack** | Internal threads, demos, recordings, and enablement materials from SEs, SAs, and enablement teams |
 
+> **Note:** For some searches — particularly Salesforce docs lookups — this skill may delegate to the **sf-demo-scout** plugin if it is installed, which provides enhanced access to official documentation. If you have sf-demo-scout installed, those lookups will be faster and more comprehensive.
+
 **Example triggers:**
 ```
 /sf-feature-research Agentforce Service Agent
@@ -27,6 +29,17 @@ Research any Salesforce feature end-to-end in a single command. Runs four search
 "Find me everything on Headless 360 — docs, Trailhead, Slack"
 "What are people saying internally about Einstein Copilot?"
 ```
+
+#### Install `sf-feature-research`
+
+```bash
+git clone https://github.com/joseantoniorodriguezSFDC/sf-skills.git /tmp/josea-sf-skills
+cp -r /tmp/josea-sf-skills/skills/sf-feature-research ~/.claude/skills/sf-feature-research
+```
+
+Then restart Claude Code and run `/sf-feature-research <feature name>`.
+
+**Need help with the installation?** Use the [Claude Code Installation Slackbot](https://salesforce.enterprise.slack.com/docs/T01G0063H29/F0AU63M26DB) — it guides you step by step through the full Claude Code and skills setup process.
 
 ---
 
