@@ -8,6 +8,28 @@ Built by Jose Antonio Rodriguez — Success Guide, Agentforce Service.
 
 ## Skills
 
+### `sf-feature-research`
+
+Research any Salesforce feature end-to-end in a single command. Runs four search tracks in parallel and synthesizes findings into a structured report:
+
+| Track | What it searches |
+|---|---|
+| **Trailhead** | Official learning content — modules, trails, projects, superbadges |
+| **Salesforce Help & Docs** | Setup guides, developer references, API docs — with published dates |
+| **Web** | Recent release notes, blog posts, and Salesforce Help articles from the past year |
+| **Slack** | Internal threads, demos, recordings, and enablement materials from SEs, SAs, and enablement teams |
+
+**Example triggers:**
+```
+/sf-feature-research Agentforce Service Agent
+/sf-feature-research Slack MCP integration
+/sf-feature-research Data Cloud unification
+"Find me everything on Headless 360 — docs, Trailhead, Slack"
+"What are people saying internally about Einstein Copilot?"
+```
+
+---
+
 ### `agentforce-success-guide`
 
 The front door for Success Guides and Success Architects running Agentforce coaching sessions with customers. It connects Claude Code directly to a customer's Salesforce org via the Salesforce Hosted MCP Server — no browser, no Setup clicks required.
@@ -107,15 +129,23 @@ Save the file, restart Claude Code, then open `/mcp` — the server should now s
 
 ## Installation
 
+Install one skill or all of them at once:
+
 ```bash
 git clone https://github.com/joseantoniorodriguezSFDC/sf-skills.git /tmp/josea-sf-skills
+
+# Install agentforce-success-guide
 cp -r /tmp/josea-sf-skills/skills/agentforce-success-guide ~/.claude/skills/agentforce-success-guide
+
+# Install sf-feature-research
+cp -r /tmp/josea-sf-skills/skills/sf-feature-research ~/.claude/skills/sf-feature-research
 ```
 
-Then restart Claude Code and run:
+Then restart Claude Code. The skills are available immediately as:
 
 ```
 /agentforce-success-guide
+/sf-feature-research
 ```
 
 ---
