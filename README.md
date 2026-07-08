@@ -60,6 +60,42 @@ This is the **Headless 360** story in practice: everything you'd normally do thr
 
 ---
 
+## Success-Guide daily-workflow skills
+
+Beyond the two Agentforce skills above, this repo now ships the **daily-driver toolkit** — the read-only skills a Success Guide leans on every day, plus two top-level orchestrators that decide *which* tool to use. These are templatized: any personal value (Slack id, workspace email, org, timezone, canvas id) appears as a `<PLACEHOLDER>` you fill in once. Each skill carries a `> ⚙️ Setup:` note at the top listing exactly what to replace.
+
+| Skill | What it answers | Sources | Writes? |
+|---|---|---|---|
+| **`daily-driver`** ⭐ | "Catch me up — what needs me today?" Orchestrates the four lanes below into one picture | all of the below | ❌ read-only (nudges are draft-and-confirm) |
+| **`salesforce-tool-router`** ⭐ | "How do I do X in Salesforce from here?" Routes any SF task to MCP vs CLI vs the right skill + org | routing only | ❌ routes, doesn't act |
+| `gmail-priority-check` | "Which email actually needs me?" | Gmail | ❌ read-only |
+| `calendar-agenda` | "What meetings do I have?" | Google Calendar | ❌ read-only |
+| `orgcs-case-age` | "Which cases has the customer gone quiet on?" | Salesforce (support org) | ❌ detect + alert |
+| `orgcs-engagement-nudge` | "Which engagements are waiting on a nudge?" | Salesforce + Slack | ⚠️ draft-and-confirm nudge only |
+| `etrab-weekly-note` | Per-account weekly status notes, follow-on to the last one | Salesforce + Slack + Gmail | ❌ read-only (drafts to paste) |
+| `discovery-call-canvas` | Turn an account/case into a discovery-prep Slack canvas | Salesforce + Slack + web | ✅ creates a Slack canvas only |
+
+> ⭐ = **orchestrator** (routes/synthesizes; delegates the real work to the task skills). The others are single-purpose task skills.
+
+### Setup — fill in your placeholders
+
+Every daily-workflow skill is safe to publish because personal values are placeholders. After copying a skill into `~/.claude/skills/`, open its `SKILL.md` and replace:
+
+| Placeholder | Your value |
+|---|---|
+| `<YOUR_SLACK_USER_ID>` | your Slack member id (Slack profile → ⋯ → *Copy member ID*) |
+| `<YOUR_WORKSPACE_EMAIL>` | the email your Google Workspace / Slack MCP is authenticated as |
+| `<YOUR_STORM_ORG>` | your demo/CLI org alias |
+| `<YOUR_WEEKLY_CANVAS_ID>` | the Slack canvas id you keep your weekly rollup in (or create one) |
+| `<your timezone>` | your IANA timezone (e.g. `America/New_York`) |
+| `<CHANNEL_ID>`, `<Account>`, `<AE name>`, `<Case#>`, `<ENG-id>` | these are only in *examples* — no need to change |
+
+### Subagent discipline
+
+All of these skills follow one rule for when to spin up a Claude Code subagent — see [`SUBAGENTS.md`](./SUBAGENTS.md). Short version: **inline by default; fan out to subagents only when the work is *big-and-offloadable* or *many-and-parallel*; never during a live customer call.** The `daily-driver` and the two `orgcs-*` / `etrab-*` skills gate their fan-out on engagement count so small runs never pay the spawn cost.
+
+---
+
 ## Prerequisites
 
 The skill checks these automatically on startup, but here's what you need and why:
@@ -152,6 +188,9 @@ cp -r /tmp/josea-sf-skills/skills/agentforce-success-guide ~/.claude/skills/agen
 
 # Install sf-feature-research
 cp -r /tmp/josea-sf-skills/skills/sf-feature-research ~/.claude/skills/sf-feature-research
+
+# Or install the whole daily-driver toolkit at once
+cp -r /tmp/josea-sf-skills/skills/* ~/.claude/skills/
 ```
 
 Then restart Claude Code. The skills are available immediately as:
@@ -159,7 +198,17 @@ Then restart Claude Code. The skills are available immediately as:
 ```
 /agentforce-success-guide
 /sf-feature-research
+/daily-driver
+/salesforce-tool-router
+/gmail-priority-check
+/calendar-agenda
+/orgcs-case-age
+/orgcs-engagement-nudge
+/etrab-weekly-note
+/discovery-call-canvas
 ```
+
+> After installing any daily-workflow skill, open its `SKILL.md` and fill in the `<PLACEHOLDER>` values (see the *Setup* table above). Most skills also need the relevant read-only MCP servers connected (Salesforce support/CRM org, Google Workspace, Slack) — each skill's *Prerequisites* section lists exactly which.
 
 ---
 

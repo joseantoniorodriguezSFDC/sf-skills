@@ -3,8 +3,8 @@ name: agentforce-success-guide
 description: "Success Guide orchestrator for Agentforce via MCP. TRIGGER when: user wants to discover agents in a Salesforce org, audit agent permissions or beta perms, observe production agent health, or needs a Headless 360 coaching narrative for a customer. DO NOT TRIGGER when: user is building or modifying an .agent file (use developing-agentforce), running test specs (use testing-agentforce), or setting up the MCP connection itself (use sf-hosted-mcp)."
 metadata:
   type: orchestrator
-  version: "1.0"
-  last_updated: "2026-05-25"
+  version: "1.1"
+  last_updated: "2026-05-29"
   author: "Jose Antonio Rodriguez — Success Guide, Agentforce Service"
   audience: "Success Guides coaching customers on Agentforce"
 ---
@@ -437,6 +437,41 @@ This arc works for both:
 - **Live customer calls** (use Domains 1–3; Domain 4 only if time permits and customer is engaged)
 - **Async coaching prep** (run all 4 domains; use output as briefing material for the call)
 
+> **Live calls stay sequential and narrated — do not parallelize them.** The demo's value is the customer watching each phrase land in real time; orchestration is invisible to them and only adds cost. The fan-out below is for prep only.
+
+---
+
+## Prep Mode — Whole-Org Fan-Out (Workflow)
+
+**Trigger phrases:** "prep me for the &lt;customer&gt; call", "audit the whole org", "brief me on every agent", "run a full 360 prep"
+
+When the Success Guide is preparing **async** (no customer watching) and the org has **more than ~3 agents**, the serial arc above is slow. Use the bundled workflow to discover, audit, and observe every agent **concurrently**, then synthesize one briefing.
+
+This is a headless fan-out, so it runs **only after** the interactive steps that a workflow cannot do itself:
+
+1. Complete **Step 0–3** (dependency check, org selection, `getUserInfo` confirmation) in this session as normal.
+2. Run **Domain 1, Step 1** once to get the agent list (the `BotDefinition` inventory).
+3. Probe STDM availability once: attempt `SELECT Id FROM ssot__AiAgentSession__dlm LIMIT 1` via MCP. If it errors, STDM is unavailable.
+4. Invoke the workflow, passing the confirmed context in as `args`:
+
+```
+Workflow({
+  scriptPath: "~/.claude/skills/agentforce-success-guide/workflows/agentforce-360-prep.js",
+  args: {
+    agents: [ { id, developerName, masterLabel, status, type }, ... ],  // from Domain 1 Step 1
+    hasStdm: true,                  // false if the STDM probe errored
+    orgAlias: "<selected alias>",
+    org: "<username from getUserInfo>"
+  }
+})
+```
+
+The workflow pipelines each agent through **Discover → Audit → Observe** independently, then runs one synthesis pass (the only barrier) to produce a customer-facing briefing. When `hasStdm` is `false`, the Observe stage is skipped org-wide rather than failing per agent — matching Domain 3's fallback behavior.
+
+When it returns, present the `headline` and the per-agent table in coaching language. The customer's "findings → shareable Slack canvas" combo still works: pass the returned briefing to the Slack MCP server to author a canvas.
+
+> **When NOT to use this:** live customer calls (keep them sequential), or orgs with 1–2 agents (fan-out overhead isn't worth it — run the arc serially). The MCP server is single-org; the workflow trusts the org you confirmed in Step 2 and never switches it.
+
 ---
 
 ## Output Standards
@@ -459,6 +494,7 @@ This arc works for both:
 | Generate architecture diagram | `generating-mermaid-diagrams` | Agent map visualization |
 | Run Apex tests on backing logic | `running-apex-tests` | After build |
 | SOQL query optimization | `querying-soql` | Complex inventory queries |
+| Whole-org concurrent prep | `workflows/agentforce-360-prep.js` | Prep Mode, orgs with >3 agents |
 
 ---
 
@@ -470,3 +506,5 @@ This arc works for both:
 | Invoking agents via MCP requires 4 beta perms | Beta | Run Audit → Check 4 to verify and remediate |
 | Invoking agents via MCP costs Flex Credits | GA behavior | Warn before any invocation; standard CRM read/write is free |
 | STDM session data requires Data Cloud | GA | `observing-agentforce` falls back to local trace analysis if unavailable |
+| Prep-mode workflow is async-only and token-heavy | By design | Use for orgs with >3 agents; run the serial arc for live calls and 1–2 agent orgs |
+| Workflow cannot select/switch orgs | By design | It trusts the org confirmed in Step 2; complete Step 0–3 interactively before invoking |
