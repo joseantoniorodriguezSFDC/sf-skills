@@ -39,7 +39,7 @@ cp -r /tmp/josea-sf-skills/skills/sf-feature-research ~/.claude/skills/sf-featur
 
 Then restart Claude Code and run `/sf-feature-research <feature name>`.
 
-**Need help with the installation?** Use the [Claude Code Installation Slackbot](https://salesforce.enterprise.slack.com/docs/T01G0063H29/F0AU63M26DB) — it guides you step by step through the full Claude Code and skills setup process.
+**Need help with the installation?** See the [Claude Code docs](https://docs.claude.com/en/docs/claude-code/overview) for the full setup process. *(Salesforce-internal users: an installation Slackbot is available in the enterprise workspace.)*
 
 ---
 

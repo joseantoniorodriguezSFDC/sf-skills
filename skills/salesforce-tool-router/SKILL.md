@@ -7,7 +7,7 @@ metadata:
   last_updated: "2026-07-08"
   author: "Antonio Magana — Success Guide"
   audience: "Success Guides using Claude Code for Salesforce"
-  companion_canvas: "https://salesforce.enterprise.slack.com/docs/T01G0063H29/F0BFY2876F7"
+  companion_canvas: "https://<your-workspace>.slack.com/docs/<SLACK_TEAM_ID>/<CANVAS_ID>  # internal Field Guide canvas — replace with your own"
 ---
 
 # Salesforce Tool Router
