@@ -89,20 +89,27 @@ This is the **Headless 360** story in practice: everything you'd normally do thr
 
 ## Success-Guide daily-workflow skills
 
-Beyond the two Agentforce skills above, this repo now ships the **daily-driver toolkit** — the read-only skills a Success Guide leans on every day, plus two top-level orchestrators that decide *which* tool to use. These are templatized: any personal value (Slack id, workspace email, org, timezone, canvas id) appears as a `<PLACEHOLDER>` you fill in once. Each skill carries a `> ⚙️ Setup:` note at the top listing exactly what to replace.
+Beyond the two Agentforce skills above, this repo ships the **daily-driver toolkit** — the read-only skills a Success Guide leans on every day, the orchestrators that decide *which* tool to use, and the **post-call motion** that turns one paste of call notes into the whole follow-up. These are templatized: any personal value (Slack id, workspace email, org, timezone, canvas id, booking link) appears as a `<PLACEHOLDER>` you fill in once. Each skill carries a `> ⚙️ Setup:` note at the top listing exactly what to replace.
 
 | Skill | What it answers | Sources | Writes? |
 |---|---|---|---|
-| **`daily-driver`** ⭐ | "Catch me up — what needs me today?" Orchestrates the four lanes below into one picture | all of the below | ❌ read-only (nudges are draft-and-confirm) |
+| **`daily-driver`** ⭐ | "Catch me up — what needs me today?" Orchestrates the lanes below into one picture | all of the below | ❌ read-only (nudges are draft-and-confirm) |
 | **`salesforce-tool-router`** ⭐ | "How do I do X in Salesforce from here?" Routes any SF task to MCP vs CLI vs the right skill + org | routing only | ❌ routes, doesn't act |
 | `gmail-priority-check` | "Which email actually needs me?" | Gmail | ❌ read-only |
 | `calendar-agenda` | "What meetings do I have?" | Google Calendar | ❌ read-only |
 | `orgcs-case-age` | "Which cases has the customer gone quiet on?" | Salesforce (support org) | ❌ detect + alert |
 | `orgcs-engagement-nudge` | "Which engagements are waiting on a nudge?" | Salesforce + Slack | ⚠️ draft-and-confirm nudge only |
 | `etrab-weekly-note` | Per-account weekly status notes, follow-on to the last one | Salesforce + Slack + Gmail | ❌ read-only (drafts to paste) |
-| `discovery-call-canvas` | Turn an account/case into a discovery-prep Slack canvas | Salesforce + Slack + web | ✅ creates a Slack canvas only |
+| `discovery-call-canvas` | Turn an account/case into a discovery-prep Slack canvas (or refresh a working canvas after a call) | Salesforce + Slack + web | ✅ creates or refreshes a Slack canvas only |
+| **`post-call-360`** ⭐ | "Wrap up this call" — one paste of call notes → customer email draft + internal Slack summary + your homework + refreshed canvas | Salesforce + Slack + Google + web | ⚠️ email draft-only; Slack summary auto-sends to internal targets only; delegates tasks + canvas |
+| `call-next-steps` | "Log my homework from this call" → due-dated Google Tasks | Gemini notes → Google Tasks | ⚠️ draft-and-confirm; writes Google Tasks only |
+| `ae-syncup-channel` | "Sync the account team on a new case" → per-case Slack channel + kickoff | Salesforce + Slack | ⚠️ confirm-before-create; creates a channel + posts kickoff |
+| **`brag-book`** ⭐ | "What have I contributed?" → qualitative promotion evidence in a Slack canvas | Slack + Salesforce | ⚠️ draft-and-confirm; updates a Slack canvas |
+| `case-closure-hygiene` | "Is this case ready to close / why isn't it counting?" → closure SOP checklist | Salesforce | ❌ read-only advisory + draft outreach |
 
 > ⭐ = **orchestrator** (routes/synthesizes; delegates the real work to the task skills). The others are single-purpose task skills.
+
+> **The post-call motion.** `post-call-360` is the front door after any customer call: one paste of the Gemini notes fans out to a customer recap email (draft), an internal AE/CSM Slack summary, your homework, and a refreshed next-call canvas. It chains `call-next-steps` (your homework → Google Tasks), `discovery-call-canvas` in next-call mode (the persistent working canvas), and — for a brand-new case — `ae-syncup-channel` (spins up the case channel). The customer email is **never** auto-sent, and the internal summary auto-sends **only** to an internal channel you're already a member of, else it falls back to a DM or a hand-paste draft.
 
 ### Setup — fill in your placeholders
 
@@ -114,8 +121,14 @@ Every daily-workflow skill is safe to publish because personal values are placeh
 | `<YOUR_WORKSPACE_EMAIL>` | the email your Google Workspace / Slack MCP is authenticated as |
 | `<YOUR_STORM_ORG>` | your demo/CLI org alias |
 | `<YOUR_WEEKLY_CANVAS_ID>` | the Slack canvas id you keep your weekly rollup in (or create one) |
+| `<YOUR_BOOKING_LINK>` | your self-service scheduling URL (e.g. a Google Calendar appointment page) — used in customer email drafts (`post-call-360`) and AE kickoffs (`ae-syncup-channel`) |
+| `<BRAG_CANVAS_ID>` | the Slack canvas id for your brag book (`brag-book`) — create one or use an existing canvas |
+| `<GUIDE_CHANNEL_ID>` | your team's guide channel where you share content (`brag-book`) |
 | `<your timezone>` | your IANA timezone (e.g. `America/New_York`) |
+| `[your name]` | the name you sign AE kickoffs with (`ae-syncup-channel`, Step 7) |
 | `<CHANNEL_ID>`, `<Account>`, `<AE name>`, `<Case#>`, `<ENG-id>` | these are only in *examples* — no need to change |
+
+> The `post-call-360` motion also uses a `Customer Next Steps` Google Tasks list — no placeholder needed; `call-next-steps` creates it (and remembers its id) on first run.
 
 ### Subagent discipline
 
@@ -233,6 +246,11 @@ Then restart Claude Code. The skills are available immediately as:
 /orgcs-engagement-nudge
 /etrab-weekly-note
 /discovery-call-canvas
+/post-call-360
+/call-next-steps
+/ae-syncup-channel
+/brag-book
+/case-closure-hygiene
 ```
 
 > After installing any daily-workflow skill, open its `SKILL.md` and fill in the `<PLACEHOLDER>` values (see the *Setup* table above). Most skills also need the relevant read-only MCP servers connected (Salesforce support/CRM org, Google Workspace, Slack) — each skill's *Prerequisites* section lists exactly which.
