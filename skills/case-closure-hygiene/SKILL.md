@@ -11,7 +11,7 @@ metadata:
 
 # Case Closure Hygiene — code the win, protect the metrics
 
-> ⚙️ **Setup:** replace `<YOUR_SLACK_USER_ID>` (Slack profile → ⋯ → *Copy member ID*); your support-org `userId` is read live via `getUserInfo`; `<your timezone>` (IANA, e.g. `America/New_York`); `<YOUR_BOOKING_LINK>` (your self-service scheduling URL). Field API names below (`Sub_Status__c`, `Case_Cause__c`, `Sub_cause__c`, `Additional_Details_for_Cause__c`, `Next_Follow_up_Date__c`, `Age_days__c`) are from one org's Case schema — **verify them against your own org** with `getObjectSchema('Case')` before relying on the SOQL.
+> **⚙️ Setup:** This skill reads your `booking_link` (self-service scheduling URL) from `~/.claude/profile.md` — run `/setup-profile` once after cloning and set it when asked; no need to edit this file. Your support-org `userId` and timezone are read live via `getUserInfo`. Field API names below (`Sub_Status__c`, `Case_Cause__c`, `Sub_cause__c`, `Additional_Details_for_Cause__c`, `Next_Follow_up_Date__c`, `Age_days__c`) are from one org's Case schema — **verify them against your own org** with `getObjectSchema('Case')` before relying on the SOQL.
 
 ## Purpose
 
@@ -131,7 +131,7 @@ Outreach clock (if non-responsive):
 
 For non-responsive cases inside the 3-attempts-over-2-weeks window, draft the SOP-templated touch (plain text, **no `>` blockquotes**; localized language matching the thread; verify the contact's **first name** from the thread's From/signature, never the email handle):
 
-- **1st / 2nd / 3rd touch** per your SOP templates; a meeting-ask touch includes `<YOUR_BOOKING_LINK>` inline.
+- **1st / 2nd / 3rd touch** per your SOP templates; a meeting-ask touch includes your `booking_link` (from `~/.claude/profile.md`) inline.
 - Append your standard **email signature** block.
 - Drafts only — nothing sent from this skill.
 

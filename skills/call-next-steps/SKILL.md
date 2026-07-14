@@ -11,7 +11,7 @@ metadata:
 
 # Call Next Steps — file YOUR homework into Google Tasks
 
-> ⚙️ **Setup:** replace `<YOUR_WORKSPACE_EMAIL>` (the email your Google Workspace MCP is authenticated as) and `<your timezone>` (IANA, e.g. `America/New_York`). The `Customer Next Steps` list id is resolved (or created) on first run — no placeholder needed.
+> **⚙️ Setup:** This skill reads your `workspace_email` and `timezone` from `~/.claude/profile.md` (auto-detected by `/setup-profile`). Run `/setup-profile` once after cloning; no need to edit this file. The `Customer Next Steps` list id is resolved (or created) on first run.
 
 ## Purpose
 
@@ -28,7 +28,7 @@ This skill closes that loop: from the same pasted notes it extracts **only the a
 ## Prerequisites
 
 ### Google Workspace MCP connected
-The `google-workspace` plugin server must show `✓ Connected` (mailbox `<YOUR_WORKSPACE_EMAIL>`). If it errors "connection reset by peer" / `-32000`, that's the **gateway** — `/mcp reconnect` (NOT re-auth). See [[gworkspace-mcp-gateway-outage]] and [[personal-productivity-skills]]. If Tasks is unreachable, report the gap — don't silently return "nothing to file."
+The `google-workspace` plugin server must show `✓ Connected` (mailbox `workspace_email` from `~/.claude/profile.md`). If it errors "connection reset by peer" / `-32000`, that's the **gateway** — `/mcp reconnect` (NOT re-auth). See [[gworkspace-mcp-gateway-outage]] and [[personal-productivity-skills]]. If Tasks is unreachable, report the gap — don't silently return "nothing to file."
 
 ---
 
@@ -46,7 +46,7 @@ The `google-workspace` plugin server must show `✓ Connected` (mailbox `<YOUR_W
 
 ## Step 0 — Guardrails (every run)
 
-1. **Anchor "now" first.** Note the current date/time in your timezone (`<your timezone>`) at the moment the run fires. Convert every relative timeframe in the notes ("by Friday", "next week", "before the next call") to an **absolute date** against that anchor — never leave a task due date relative. See [[feedback-cron-time-anchor]].
+1. **Anchor "now" first.** Note the current date/time in your `timezone` (from `~/.claude/profile.md`) at the moment the run fires. Convert every relative timeframe in the notes ("by Friday", "next week", "before the next call") to an **absolute date** against that anchor — never leave a task due date relative. See [[feedback-cron-time-anchor]].
 2. **Check MCP health before blaming empty results.** If Google errors, `/mcp reconnect` (gateway) and report; don't return a false "no homework."
 3. **Draft-and-confirm.** Never create a task without showing you the proposed list first (Step 5).
 4. **Sensitive data.** Call notes are real customer content — respect CSG/Claude data-handling; keep task titles/notes concise and free of anything that shouldn't live in Google Tasks.

@@ -11,7 +11,7 @@ metadata:
 
 # Brag Book — Qualitative Contribution Tracker
 
-> ⚙️ **Setup:** replace `<YOUR_SLACK_USER_ID>` (Slack profile → ⋯ → *Copy member ID*), `<BRAG_CANVAS_ID>` (create a canvas with the structure at the bottom, or your existing one), `<GUIDE_CHANNEL_ID>` (your team's guide channel where you share content), and `<your timezone>` (IANA, e.g. `America/New_York`).
+> **⚙️ Setup:** This skill reads your context from `~/.claude/profile.md` — `slack_user_id` (auto-detected by `/setup-profile`), plus `brag_canvas_url` (your brag canvas — create one with the structure at the bottom, or reuse an existing one) and `guide_channel_id` (your team's guide channel), which you set when it asks. Run `/setup-profile` once after cloning; no need to edit this file. (Your support-org `userId` + timezone are read live via `getUserInfo`.)
 
 ## Purpose
 
@@ -42,19 +42,19 @@ Maintain a brag book that **quantifies qualitative contributions** — the half 
 
 - **Slack MCP** `✓ Connected` (scans + canvas update). If down, present entries in the terminal and skip the write.
 - **Support-org MCP** `✓ Connected` (for the case-comment assist scan). If down, run the Slack-only scan and note the gap.
-- The **brag canvas** exists (`<BRAG_CANVAS_ID>`). Read it first every run — the tally + rows are the dedupe baseline.
+- The **brag canvas** exists (`brag_canvas_url` in `~/.claude/profile.md`). Read it first every run — the tally + rows are the dedupe baseline.
 
 ---
 
 ## Step 0 — Anchor time + read current state
 
 1. **Anchor "now"** via `getUserInfo` — capture `userId`, `timeZoneIana`, wall-clock. Convert "today/yesterday" to absolute DD/MM.
-2. **Read the canvas** (`slack_read_canvas` on `<BRAG_CANVAS_ID>`) — existing rows + tally = the **dedupe baseline**.
+2. **Read the canvas** (`slack_read_canvas` on your `brag_canvas_url`) — existing rows + tally = the **dedupe baseline**.
 3. **Scan window** = since the most recent dated entry (or last 7 days if empty). Honor an explicit window.
 
 ## Step 1 — Scan for contributions (inline, bulk)
 
-**1a — Slack assists & content shares.** Search messages *authored by you* (`<YOUR_SLACK_USER_ID>`) in-window: posts in `<GUIDE_CHANNEL_ID>` sharing docs/recordings/skills → **content shared**; substantive answers to peers → **team assist**; repeated coaching of the same person → candidate **mentorship**.
+**1a — Slack assists & content shares.** Search messages *authored by you* (`slack_user_id`) in-window: posts in your `guide_channel_id` sharing docs/recordings/skills → **content shared**; substantive answers to peers → **team assist**; repeated coaching of the same person → candidate **mentorship**.
 
 **1b — Support-org case-comment assists.** Comments you authored on cases you *don't* own:
 ```soql
@@ -76,7 +76,7 @@ Compact table of **new entries only** (deduped), grouped by type, columns filled
 
 ## Step 3 — Update the canvas (only after approval)
 
-`slack_update_canvas` on `<BRAG_CANVAS_ID>`: append approved rows, **recompute the Running Tally** (exact — it's the packet number), preserve everything else. Canvas markdown rules: no `####`+, `![](@U…)` users, `![](#C…)` channels, `[text](url)` links.
+`slack_update_canvas` on your `brag_canvas_url`: append approved rows, **recompute the Running Tally** (exact — it's the packet number), preserve everything else. Canvas markdown rules: no `####`+, `![](@U…)` users, `![](#C…)` channels, `[text](url)` links.
 
 ---
 
@@ -98,7 +98,7 @@ Compact table of **new entries only** (deduped), grouped by type, columns filled
 
 ## Brag canvas — starting structure
 
-Create once with `slack_create_canvas`, then set `<BRAG_CANVAS_ID>`. Sections: a **Running Tally** table (type · count · notes) plus one table per contribution type (Team Assists, Mentorship, Mock Calls & Shadowing, Sessions & Enablement, Content & Docs Shared, Skills & Certs) with dated rows. Keep the tally at the top — it's what goes in the promotion packet.
+Create once with `slack_create_canvas`, then set `brag_canvas_url` in `~/.claude/profile.md`. Sections: a **Running Tally** table (type · count · notes) plus one table per contribution type (Team Assists, Mentorship, Mock Calls & Shadowing, Sessions & Enablement, Content & Docs Shared, Skills & Certs) with dated rows. Keep the tally at the top — it's what goes in the promotion packet.
 
 ## Related
 

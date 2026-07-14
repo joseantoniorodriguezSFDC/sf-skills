@@ -53,11 +53,14 @@ For anything that errors or is missing, note it and move on — don't block.
 ## Step 2 — Show findings and confirm
 
 Present a compact table: **field · detected value · source**. Ask the user to
-confirm or correct each. Explicitly ask for the two optional references (they
+confirm or correct each. Explicitly ask for the optional references (they
 can't be detected):
 
 - `field_guide_canvas_url` — their "MCP vs CLI vs Skills" companion canvas, if any.
 - `weekly_note_canvas_url` — their ETRAB weekly-note template canvas, if any.
+- `booking_link` — their self-service scheduling URL (inlined into customer email drafts + AE kickoffs).
+- `brag_canvas_url` — their brag-book Slack canvas, if they keep one.
+- `guide_channel_id` — the team guide channel they share content in.
 
 Let them leave any field blank.
 

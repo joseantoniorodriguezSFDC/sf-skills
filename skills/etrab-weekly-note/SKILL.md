@@ -234,15 +234,14 @@ End with a short **verify-before-logging** list: which fields are inferred (espe
 
 There is **one persistent Slack Canvas** that is the single source of truth for actionable items + recommended Stage across all of the SG's engagements:
 - **Title:** *ETRAB Weekly — Actionable Items & Stage Recommendations*
-- **Canvas ID:** `<YOUR_WEEKLY_CANVAS_ID>`
-- **URL:** https://<your-workspace>.slack.com/docs/<TEAM>/<YOUR_WEEKLY_CANVAS_ID>
+- **Canvas:** `weekly_note_canvas_url` from `~/.claude/profile.md` (its canvas id is the last path segment of that URL). Set it once via `/setup-profile`.
 - See [[etrab-weekly-canvas]].
 
-**On every run** (interactive or cron), after the per-engagement notes are built:
-1. Call `slack_read_canvas(canvas_id="<YOUR_WEEKLY_CANVAS_ID>")` to load the existing structure + section IDs.
+**On every run** (interactive or cron), after the per-engagement notes are built (canvas id = the last path segment of `weekly_note_canvas_url` from `~/.claude/profile.md`):
+1. Call `slack_read_canvas` on that canvas id to load the existing structure + section IDs.
 2. Build a fresh full canvas body in the same template (header with timestamp, one section per active engagement with checklist + recommended Stage + rationale, the Stage-flip table, the cadence + verify lines).
-3. Call `slack_update_canvas(canvas_id="<YOUR_WEEKLY_CANVAS_ID>", action="replace", content=<new body>)` **without** a `section_id` — i.e. full replacement is intentional here, because the canvas is regenerated each week. (Slack keeps prior versions in canvas history, so this is safe.)
-4. After updating, the DM to the SG should include a one-liner pointing to the canvas — e.g. `Canvas updated → <https://<your-workspace>.slack.com/docs/<TEAM>/<YOUR_WEEKLY_CANVAS_ID>|ETRAB Weekly Canvas>`.
+3. Call `slack_update_canvas(canvas_id=<that id>, action="replace", content=<new body>)` **without** a `section_id` — i.e. full replacement is intentional here, because the canvas is regenerated each week. (Slack keeps prior versions in canvas history, so this is safe.)
+4. After updating, the DM to the SG should include a one-liner pointing to the canvas — e.g. `Canvas updated → <weekly_note_canvas_url|ETRAB Weekly Canvas>`.
 
 **Per-engagement Stage recommendation (drives the canvas's Stage table).** For each engagement, evaluate the live signals and recommend one of NEW / QUALIFICATION / DELIVERY / CLOSED. Heuristic:
 - **NEW** — engagement record just created, AE not yet reachable, no internal alignment call held.
@@ -263,7 +262,7 @@ When run from the **weekly cron** (Thursdays ~12:40 PM in your `timezone` from `
   - **> 3 engagements → fan out one subagent per engagement** (each does Slack read + Gmail + prior-note parse and returns *only* the finished note + its "Since last note" diff), spawned in a single message so they run concurrently. This is the case where parallelism genuinely saves wall-clock and each helper's noisy source-reading stays out of the main thread. **Time-box** each to ~3 min and note any that didn't return rather than blocking the whole run.
   - Either way the synthesis (Step 7), tiering (Step 8) and the canvas update (Step 8.5) happen **once, inline** — they need every engagement's result together, so they're not parallelizable.
 - Deliver **one Slack DM** to the SG (`channel_id` = `slack_user_id` from `~/.claude/profile.md`) via `slack_send_message`, containing every engagement's follow-on note as a fenced code block, each preceded by its **"Since last note (…)"** diff and the engagement name + ENG-id, tiered 🔴 then 🟡/✅.
-- **Update the persistent ETRAB Weekly canvas** (canvas_id `<YOUR_WEEKLY_CANVAS_ID>`) per Step 8.5 — `slack_read_canvas` then `slack_update_canvas` with `action="replace"` (no section_id, full body replace). Include the canvas URL in the DM header.
+- **Update the persistent ETRAB Weekly canvas** (`weekly_note_canvas_url` from your profile) per Step 8.5 — `slack_read_canvas` then `slack_update_canvas` with `action="replace"` (no section_id, full body replace). Include the canvas URL in the DM header.
 - **Outbound action is limited to that single DM + the canvas update.** Do NOT post in any engagement channel, do NOT send nudges, do NOT write to Salesforce — this skill only reports; nudging is the separate [[etrab-engagement-skill]] motion in the twice-daily digest.
 - **Slack formatting:** wrap every link as `<https://…|label>`, use `*single-asterisk*` bold (not `**`), and avoid bare URLs on their own line / table-like text (these trigger `invalid_blocks`). The note bodies normally have no URLs — keep them plain inside the code fence so the SG can copy-paste straight into each task.
 - Slack here is **outbound-only** — a DM reply can't reach Claude ([[twice-daily-digest-cron]]), so the DM is the deliverable; the SG pastes each note into its "Weekly Agent Updates" task himself.

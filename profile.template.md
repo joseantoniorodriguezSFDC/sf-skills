@@ -31,6 +31,9 @@
 ## Optional references
 - field_guide_canvas_url:  # companion "MCP vs CLI vs Skills" canvas (salesforce-tool-router)
 - weekly_note_canvas_url:  # your ETRAB weekly-note template canvas (etrab-weekly-note)
+- booking_link:            # self-service scheduling URL (post-call-360, ae-syncup-channel, case-closure-hygiene)
+- brag_canvas_url:         # your brag-book Slack canvas (brag-book) — create one or reuse
+- guide_channel_id:        # team guide channel where you share content (brag-book)
 
 ---
 
@@ -44,6 +47,9 @@
 | `orgcs_username` | orgcs-case-age, orgcs-engagement-nudge, etrab-weekly-note | OrgCS `getUserInfo` → `username` (confirm it ends `@orgcs.com`) |
 | `field_guide_canvas_url` | salesforce-tool-router | you provide (a reference link) |
 | `weekly_note_canvas_url` | etrab-weekly-note | you provide (a reference link) |
+| `booking_link` | post-call-360, ae-syncup-channel, case-closure-hygiene | you provide (your scheduling URL) |
+| `brag_canvas_url` | brag-book | you provide (create the canvas first) |
+| `guide_channel_id` | brag-book | you provide (your guide channel) |
 
 > Every required value is auto-detectable from an MCP you've already connected —
 > which is why `/setup-profile` can fill this for you and you just confirm.

@@ -89,7 +89,7 @@ This is the **Headless 360** story in practice: everything you'd normally do thr
 
 ## Success-Guide daily-workflow skills
 
-Beyond the two Agentforce skills above, this repo ships the **daily-driver toolkit** — the read-only skills a Success Guide leans on every day, the orchestrators that decide *which* tool to use, and the **post-call motion** that turns one paste of call notes into the whole follow-up. These are templatized: any personal value (Slack id, workspace email, org, timezone, canvas id, booking link) appears as a `<PLACEHOLDER>` you fill in once. Each skill carries a `> ⚙️ Setup:` note at the top listing exactly what to replace.
+Beyond the two Agentforce skills above, this repo ships the **daily-driver toolkit** — the read-only skills a Success Guide leans on every day, the orchestrators that decide *which* tool to use, and the **post-call motion** that turns one paste of call notes into the whole follow-up. None of them hard-code anything about you: every personal value (workspace email, Slack id, timezone, booking link, canvas ids) lives in `~/.claude/profile.md` and is filled once by `/setup-profile` (see [First-time setup](#first-time-setup) above). Each skill's `> ⚙️ Setup:` note lists which profile fields it reads.
 
 | Skill | What it answers | Sources | Writes? |
 |---|---|---|---|
@@ -111,24 +111,20 @@ Beyond the two Agentforce skills above, this repo ships the **daily-driver toolk
 
 > **The post-call motion.** `post-call-360` is the front door after any customer call: one paste of the Gemini notes fans out to a customer recap email (draft), an internal AE/CSM Slack summary, your homework, and a refreshed next-call canvas. It chains `call-next-steps` (your homework → Google Tasks), `discovery-call-canvas` in next-call mode (the persistent working canvas), and — for a brand-new case — `ae-syncup-channel` (spins up the case channel). The customer email is **never** auto-sent, and the internal summary auto-sends **only** to an internal channel you're already a member of, else it falls back to a DM or a hand-paste draft.
 
-### Setup — fill in your placeholders
+### Setup — one profile, filled once
 
-Every daily-workflow skill is safe to publish because personal values are placeholders. After copying a skill into `~/.claude/skills/`, open its `SKILL.md` and replace:
+Every daily-workflow skill is safe to publish because it hard-codes nothing about you: it reads your context from `~/.claude/profile.md`, which `/setup-profile` fills for you (see [First-time setup](#first-time-setup)). Beyond the auto-detected basics (`workspace_email`, `slack_user_id`, `timezone`, `orgcs_username`), a few skills read **optional, you-provide** fields — `/setup-profile` prompts for these:
 
-| Placeholder | Your value |
-|---|---|
-| `<YOUR_SLACK_USER_ID>` | your Slack member id (Slack profile → ⋯ → *Copy member ID*) |
-| `<YOUR_WORKSPACE_EMAIL>` | the email your Google Workspace / Slack MCP is authenticated as |
-| `<YOUR_STORM_ORG>` | your demo/CLI org alias |
-| `<YOUR_WEEKLY_CANVAS_ID>` | the Slack canvas id you keep your weekly rollup in (or create one) |
-| `<YOUR_BOOKING_LINK>` | your self-service scheduling URL (e.g. a Google Calendar appointment page) — used in customer email drafts (`post-call-360`) and AE kickoffs (`ae-syncup-channel`) |
-| `<BRAG_CANVAS_ID>` | the Slack canvas id for your brag book (`brag-book`) — create one or use an existing canvas |
-| `<GUIDE_CHANNEL_ID>` | your team's guide channel where you share content (`brag-book`) |
-| `<your timezone>` | your IANA timezone (e.g. `America/New_York`) |
-| `[your name]` | the name you sign AE kickoffs with (`ae-syncup-channel`, Step 7) |
-| `<CHANNEL_ID>`, `<Account>`, `<AE name>`, `<Case#>`, `<ENG-id>` | these are only in *examples* — no need to change |
+| Profile field | Used by | What it is |
+|---|---|---|
+| `name` | `ae-syncup-channel` | the name you sign AE kickoffs with |
+| `booking_link` | `post-call-360`, `ae-syncup-channel`, `case-closure-hygiene` | your self-service scheduling URL (inlined into customer/AE outreach) |
+| `brag_canvas_url` | `brag-book` | your brag-book Slack canvas — create one (structure in the skill) or reuse |
+| `guide_channel_id` | `brag-book` | your team's guide channel where you share content |
 
-> The `post-call-360` motion also uses a `Customer Next Steps` Google Tasks list — no placeholder needed; `call-next-steps` creates it (and remembers its id) on first run.
+Each skill's `> ⚙️ Setup:` note names exactly which profile fields it reads — you never hand-edit a `SKILL.md`. (Tokens like `<Account>`, `<AE name>`, `<Case#>` inside skills are *examples*, not settings.)
+
+> The `post-call-360` motion also uses a `Customer Next Steps` Google Tasks list — nothing to set; `call-next-steps` creates it (and remembers its id) on first run.
 
 ### Subagent discipline
 
@@ -236,6 +232,7 @@ cp -r /tmp/josea-sf-skills/skills/* ~/.claude/skills/
 Then restart Claude Code. The skills are available immediately as:
 
 ```
+/setup-profile
 /agentforce-success-guide
 /sf-feature-research
 /daily-driver
@@ -253,7 +250,7 @@ Then restart Claude Code. The skills are available immediately as:
 /case-closure-hygiene
 ```
 
-> After installing any daily-workflow skill, open its `SKILL.md` and fill in the `<PLACEHOLDER>` values (see the *Setup* table above). Most skills also need the relevant read-only MCP servers connected (Salesforce support/CRM org, Google Workspace, Slack) — each skill's *Prerequisites* section lists exactly which.
+> After installing the daily-workflow skills, run `/setup-profile` once to fill `~/.claude/profile.md` — every skill reads its context from there (see *Setup — one profile, filled once* above). Most skills also need the relevant read-only MCP servers connected (Salesforce support/CRM org, Google Workspace, Slack) — each skill's *Prerequisites* section lists exactly which.
 
 ---
 

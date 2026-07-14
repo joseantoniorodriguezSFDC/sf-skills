@@ -11,7 +11,7 @@ metadata:
 
 # AE Syncup Channel — Pre-Customer-Engagement Sync (channel-based)
 
-> ⚙️ **Setup:** replace `<YOUR_BOOKING_LINK>` (your self-service scheduling URL — appended to every kickoff) and `[your name]` in the kickoff opener (Step 7). The OrgCS/Org62 MCP server names below are just aliases — point them at your own connected orgs.
+> **⚙️ Setup:** This skill reads your `name` and `booking_link` from `~/.claude/profile.md`. Run `/setup-profile` once after cloning (set `booking_link` — your self-service scheduling URL — when it asks); no need to edit this file. The OrgCS/Org62 MCP server names below are just aliases — point them at your own connected orgs.
 
 ## Purpose
 
@@ -27,7 +27,7 @@ This skill:
 6. Posts a kickoff message in the user's preferred language (Spanish by default for ES/LATAM accounts), grounded in the case context.
 7. **Always** includes the user's personal calendar link so the AE can self-book.
 
-> The default Google Calendar booking link is **`<YOUR_BOOKING_LINK>`** — append it to every kickoff post. Do not omit.
+> The default Google Calendar booking link is **your `booking_link`** (from `~/.claude/profile.md`) — append it to every kickoff post. Do not omit.
 
 > **Read-only on Salesforce; two outbound Slack writes (channel create + kickoff message).** OrgCS and Org62 are read-only ([[orgcs-mcp-readonly]], [[sf-mcp-org-mapping]]). The only writes are the channel creation + the kickoff message, and only after the user says "send" / "confirma".
 
@@ -182,7 +182,7 @@ Show the proposed channel name to the user in Step 8 so they can edit if it look
 The kickoff is the first message posted to the channel after creation. It's the AE syncup ask, restated for a multi-person audience, ending with the calendar link.
 
 Structure (any language):
-1. **Opener** — "Hola @AE [+ @CSM if Signature], soy [your name] del equipo de Success Guides de Agentforce. Acabo de crear este canal para el caso <CaseNumber> de <Account> y quería sincronizar con ustedes antes de contactar a <Contact first name>."
+1. **Opener** — "Hola @AE [+ @CSM if Signature], soy [your `name`] del equipo de Success Guides de Agentforce. Acabo de crear este canal para el caso <CaseNumber> de <Account> y quería sincronizar con ustedes antes de contactar a <Contact first name>."
 2. **Context line** — 1–2 sentences on what the customer is asking for (paraphrased from `Subject`/`Description`, not pasted).
 3. **The ask** — 20–30 min syncup *before* you go back to the customer, with 2–3 specific bullets:
    - Contexto de la cuenta — sponsor, sensibilidades, dinámica con el equipo técnico.
@@ -190,8 +190,8 @@ Structure (any language):
    - Cómo te conviene que me posicione con <Contact>, y si quieres estar en la primera llamada.
 4. **Sibling-account note** *(only if applicable)* — "El caso está filado bajo <parent>, pero el dominio del contacto apunta a <sibling>; si <sibling AE> es el owner correcto, los sumo al canal."
 5. **Calendar link line** — always include:
-   - Spanish: `Si te va más rápido, agendá directamente acá: <YOUR_BOOKING_LINK>`
-   - English: `If easier, grab a slot directly here: <YOUR_BOOKING_LINK>`
+   - Spanish: `Si te va más rápido, agendá directamente acá: <booking_link>`
+   - English: `If easier, grab a slot directly here: <booking_link>`
 6. **Closing line** — "Este canal queda activo para que centralicemos contexto del caso. ¡Gracias!" / "Keeping this channel as the home for case context going forward. Thanks!"
 
 **Formatting rules:**
@@ -259,7 +259,7 @@ If the channel-creation succeeded but the invite failed for one user (e.g. user 
 - **Don't paste the customer's full `Description`** into the kickoff — paraphrase. The customer may have written it in confidence.
 - **Don't assume the case account is the operating account.** ES utilities/holding groups frequently file cases on the parent while the work belongs to a sibling — flag it in the kickoff.
 - **Don't create the channel before showing the plan.** Channel creation pings the invitees instantly via Slack; one wrong invitee is socially costly. The Step 8 confirm gate is non-negotiable.
-- **Always include the calendar link.** It is a non-negotiable part of every kickoff produced by this skill: `<YOUR_BOOKING_LINK>`.
+- **Always include the calendar link.** It is a non-negotiable part of every kickoff produced by this skill (`booking_link` from your profile).
 - **No `Type` field on Case in OrgCS** — see [[headless360-audit-soql-notes]] for similar query gotchas.
 - **Stay under Slack's 80-char channel name limit.** Trim the slug, not the case-number suffix (the suffix is the discoverability anchor).
 
