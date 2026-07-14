@@ -3,7 +3,7 @@ name: etrab-weekly-note
 description: For every active engagement the Success Guide owns (the "My Active Playbooks" list view — ETRAB and all other programs), read the prior Engagement Task note plus context from the engagement's Slack channel, any linked case email thread, and the SG's Gmail, then produce a ready-to-paste weekly note per account that is a true follow-on to the last note — using the standard account-note template (DATE / AT RISK? / OVERALL HEALTH / CUSTOMER SENTIMENT / UPDATE / CUSTOMER BLOCKERS / PRODUCT GAP / NEXT STEPS). Read-only — produces draft notes for the SG to paste into the Engagement Task's Notes field; never writes to Salesforce.
 ---
 
-> **⚙️ Setup:** Replace the `<PLACEHOLDER>` values (Slack user id, workspace email, canvas id, org, timezone) with your own before first use.
+> **⚙️ Setup:** This skill reads your context (workspace email, timezone, Slack id, org, weekly-note canvas) from `~/.claude/profile.md`. Run `/setup-profile` once after cloning — it auto-detects those and writes the profile. No need to edit this file.
 
 # ETRAB Weekly / Today Note — Per-Account Status Notes
 
@@ -34,7 +34,7 @@ For each active engagement, the skill reads the prior note plus signals from thr
 `slack` shows `✓ Connected` (needed to read engagement channels, which are private — the Slack MCP user must be a member).
 
 ### 0.3 — Google Workspace MCP connected
-The `google-workspace` plugin server is connected for Gmail context (mailbox `<YOUR_WORKSPACE_EMAIL>`). If it shows a "connection reset by peer" error, that's the gateway — `/mcp reconnect` (not re-auth). See [[gworkspace-mcp-gateway-outage]] and [[personal-productivity-skills]]. If Gmail is down, proceed with Slack + case email only and note Gmail was skipped.
+The `google-workspace` plugin server is connected for Gmail context (mailbox = `workspace_email` from `~/.claude/profile.md`). If it shows a "connection reset by peer" error, that's the gateway — `/mcp reconnect` (not re-auth). See [[gworkspace-mcp-gateway-outage]] and [[personal-productivity-skills]]. If Gmail is down, proceed with Slack + case email only and note Gmail was skipped.
 
 ---
 
@@ -256,13 +256,13 @@ If the canvas read returns "not found" / 404 (rare — someone deleted it), recr
 
 ## Step 9 — Unattended / scheduled mode (Thursday midday cron)
 
-When run from the **weekly cron** (Thursdays ~12:40 PM `<your timezone>`), there's no human present, so the skill switches to **report-and-deliver** mode:
+When run from the **weekly cron** (Thursdays ~12:40 PM in your `timezone` from `~/.claude/profile.md`), there's no human present, so the skill switches to **report-and-deliver** mode:
 - Run **STEP 0 OrgCS auth pre-check** first (`getUserInfo` on orgcs). If it fails/401/empty: do **not** silently fail — send a Slack DM saying "⚠️ OrgCS not authenticated — re-auth at /mcp (orgcs custom domain); weekly notes skipped this run." and stop.
 - Process **all active engagements** — but **gate the fan-out on count** (this is the *many-and-parallel* rule; don't pay spawn overhead when there's nothing to parallelize):
   - **≤ 3 engagements → stay inline**, processing them sequentially. A single subagent per engagement here is slower and costs more tokens than just doing it in the main thread.
   - **> 3 engagements → fan out one subagent per engagement** (each does Slack read + Gmail + prior-note parse and returns *only* the finished note + its "Since last note" diff), spawned in a single message so they run concurrently. This is the case where parallelism genuinely saves wall-clock and each helper's noisy source-reading stays out of the main thread. **Time-box** each to ~3 min and note any that didn't return rather than blocking the whole run.
   - Either way the synthesis (Step 7), tiering (Step 8) and the canvas update (Step 8.5) happen **once, inline** — they need every engagement's result together, so they're not parallelizable.
-- Deliver **one Slack DM** to the SG (`channel_id` `<YOUR_SLACK_USER_ID>`) via `slack_send_message`, containing every engagement's follow-on note as a fenced code block, each preceded by its **"Since last note (…)"** diff and the engagement name + ENG-id, tiered 🔴 then 🟡/✅.
+- Deliver **one Slack DM** to the SG (`channel_id` = `slack_user_id` from `~/.claude/profile.md`) via `slack_send_message`, containing every engagement's follow-on note as a fenced code block, each preceded by its **"Since last note (…)"** diff and the engagement name + ENG-id, tiered 🔴 then 🟡/✅.
 - **Update the persistent ETRAB Weekly canvas** (canvas_id `<YOUR_WEEKLY_CANVAS_ID>`) per Step 8.5 — `slack_read_canvas` then `slack_update_canvas` with `action="replace"` (no section_id, full body replace). Include the canvas URL in the DM header.
 - **Outbound action is limited to that single DM + the canvas update.** Do NOT post in any engagement channel, do NOT send nudges, do NOT write to Salesforce — this skill only reports; nudging is the separate [[etrab-engagement-skill]] motion in the twice-daily digest.
 - **Slack formatting:** wrap every link as `<https://…|label>`, use `*single-asterisk*` bold (not `**`), and avoid bare URLs on their own line / table-like text (these trigger `invalid_blocks`). The note bodies normally have no URLs — keep them plain inside the code fence so the SG can copy-paste straight into each task.

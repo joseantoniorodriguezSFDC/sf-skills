@@ -6,6 +6,33 @@ Built by Jose Antonio Rodriguez — Success Guide, Agentforce Service.
 
 ---
 
+## First-time setup
+
+These skills come in two layers:
+
+- **Capability layer — the skills themselves.** Shared, versioned, identical for everyone. This repo.
+- **Context layer — who you are.** Your workspace email, timezone, Slack id, and support org. Personal to you, and *not* in this repo.
+
+A freshly cloned skill is fully capable but knows nothing about you. You supply the context layer **once**, into a single file the skills read — `~/.claude/profile.md`:
+
+```bash
+git clone https://github.com/joseantoniorodriguezSFDC/sf-skills.git /tmp/sf-skills
+cp -r /tmp/sf-skills/skills/* ~/.claude/skills/
+cp /tmp/sf-skills/profile.template.md ~/.claude/profile.md
+```
+
+Then, in Claude Code, run:
+
+```
+/setup-profile
+```
+
+It auto-detects your email, timezone, Slack id, and org from the MCPs you've already connected, asks you to confirm, and fills `~/.claude/profile.md`. Every skill reads from there — so you never hand-edit a `SKILL.md`, and `git pull` for skill updates never clobbers your settings.
+
+> ⚠️ **Never commit `~/.claude/profile.md`** — it identifies you. The repo ships only the blank `profile.template.md`. (Same rule as `~/.claude.json`, which holds your MCP OAuth secrets.)
+
+---
+
 ## Skills
 
 ### `sf-feature-research`

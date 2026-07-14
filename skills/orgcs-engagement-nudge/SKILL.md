@@ -3,7 +3,7 @@ name: orgcs-engagement-nudge
 description: Check the Success Guide's active engagements (the "My Active Playbooks" list view) — has anyone replied in each engagement's linked Slack channel (and the related case email thread)? If a channel has gone quiet (nobody but the Success Guide has replied AND >2 business days since the SG's last message), draft an @here nudge for approval. Covers all active engagements, not just ETRAB. Read-only on OrgCS; the only write is a Slack nudge the user explicitly approves.
 ---
 
-> **⚙️ Setup:** Replace the `<PLACEHOLDER>` values (Slack user id, workspace email, org, timezone) with your own before first use.
+> **⚙️ Setup:** This skill reads your context (Slack id, workspace email, timezone, org) from `~/.claude/profile.md`. Run `/setup-profile` once after cloning — it auto-detects those and writes the profile. No need to edit this file.
 
 # OrgCS Engagement Nudge — Adoption Follow-up
 
@@ -53,7 +53,7 @@ Confirm `slack` shows `✓ Connected`. Channel reads and the nudge both need it.
 
 ## Step 1 — Identify the user
 
-Call `getUserInfo` (OrgCS). Capture `userId` (owner filter), `timeZoneIana` (use the **`userTimeAndLocale.timeZoneIana`** — the user's own tz, not the manager's), and confirm `username` ends in `@orgcs.com`. Also grab the Slack `user_id` for the alert recipient (in this environment it is `<YOUR_SLACK_USER_ID>`; otherwise `slack_search_users`).
+Call `getUserInfo` (OrgCS). Capture `userId` (owner filter), `timeZoneIana` (use the **`userTimeAndLocale.timeZoneIana`** — the user's own tz, not the manager's), and confirm `username` ends in `@orgcs.com`. Also grab the Slack `user_id` for the alert recipient (from `slack_user_id` in `~/.claude/profile.md`; otherwise `slack_search_users`).
 
 ## Step 2 — Pull active engagements (My Active Playbooks)
 

@@ -9,7 +9,7 @@ metadata:
   audience: "Success Guides triaging their OrgCS case load"
 ---
 
-> **⚙️ Setup:** Replace the `<PLACEHOLDER>` values (Slack user id, org, timezone, setup-doc URL) with your own before first use.
+> **⚙️ Setup:** This skill reads your context (Slack id, timezone, org) from `~/.claude/profile.md`. Run `/setup-profile` once after cloning — it auto-detects those and writes the profile. No need to edit this file.
 
 # OrgCS Case Age — Stale-Case Triage
 
@@ -168,7 +168,7 @@ Lead with the ASAP tier, then the OK tier. Same structure in the terminal and in
 
 When a case is on-track *because* of a logged next step, show that note inline (date + the action) so it's clear why it isn't being chased — e.g. `<Case#> · <Account> · customer quiet 6 biz days, but internal note 6/8: AE <AE name> call booked Thu 2pm → on track`.
 
-Unless the user opted out, send a DM to **their own Slack** (`channel_id` = the user's Slack user_id; in this environment that is `<YOUR_SLACK_USER_ID>` — if unknown, look up with `slack_search_users`). Use a `:rotating_light:`-style header, the as-of date, and the same two-tier layout. Return the message link.
+Unless the user opted out, send a DM to **their own Slack** (`channel_id` = the user's Slack user_id; from `slack_user_id` in `~/.claude/profile.md` — if unset, look up with `slack_search_users`). Use a `:rotating_light:`-style header, the as-of date, and the same two-tier layout. Return the message link.
 
 If **no** ASAP cases: send a short "✅ All caught up — no cases need attention today." followed by the OK list for awareness (or skip the DM if the user prefers alerts only). If there are **zero** open waiting-on-customer cases at all, just send the all-clear.
 

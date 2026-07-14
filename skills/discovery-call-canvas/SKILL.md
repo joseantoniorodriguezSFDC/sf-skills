@@ -3,7 +3,7 @@ name: discovery-call-canvas
 description: Build a personalized 1st-discovery-call prep canvas for an account and publish it as a Slack Canvas. Give it an OrgCS case (or account) and it pulls live CRM data from Org62 (account profile, ARR/ACV, opportunities, contracts) plus support/engagement history from OrgCS, auto-detects the product focus (Agentforce/Data 360) and specific feature from the case, reads any Gemini call notes from a shared Google Doc link, does live web research for feature best practices + Trailhead/Docs resources (with dates), then assembles a scannable prep doc — account overview, business & call highlights, support summary, relevant features, best practices, curated Public/Internal resources, and tailored discovery questions. Triggers — "discovery call highlights", "give me the highlights/forensics", "prep a discovery canvas for an account". Read-only against all Salesforce orgs; the only write is creating the Slack canvas.
 ---
 
-> **⚙️ Setup:** Replace the `<PLACEHOLDER>` values with your own before first use.
+> **⚙️ Setup:** This skill reads your context (workspace email) from `~/.claude/profile.md`. Run `/setup-profile` once after cloning — it auto-detects it and writes the profile. No need to edit this file.
 
 # Discovery Call Canvas — Prep an account for a 1st call
 
@@ -25,7 +25,7 @@ This is the local port of the user's Slackbot "Discovery Call Highlights" skill,
 
 1. **Org62 auth** — call `getUserInfo` on `Org62-Sobject-Read`; expect the internal-org profile/role on the `@salesforce.com` identity. If it 401s, tell the user to re-auth at `/mcp` (it was added via the Org62 sanctioned connected app — see the basecamp setup guide). If unavailable, proceed without CRM data and note it on the canvas.
 2. **OrgCS auth** — call `getUserInfo` on `orgcs`; expect a `@orgcs.com` username. If it 401s, skip the support/engagement section and note it. See [[orgcs-mcp-readonly]].
-3. **Google Workspace** (only when call notes are shared) — reading a Gemini notes Google Doc uses the Google Workspace MCP (already authed to `<YOUR_WORKSPACE_EMAIL>`). Primary tool `get_doc_as_markdown`; fallback `get_drive_file_content`. If the doc isn't accessible, note it and proceed without notes.
+3. **Google Workspace** (only when call notes are shared) — reading a Gemini notes Google Doc uses the Google Workspace MCP (already authed to your `workspace_email` from `~/.claude/profile.md`). Primary tool `get_doc_as_markdown`; fallback `get_drive_file_content`. If the doc isn't accessible, note it and proceed without notes.
 4. **Both SF orgs are READ-ONLY** — never attempt writes/case creation through either. The only write this skill performs is `slack_create_canvas` (needs the paid/enterprise Slack workspace, which the user has).
 5. If **both** SF orgs are down, fall back to a "web + call-notes only" canvas and say so clearly.
 

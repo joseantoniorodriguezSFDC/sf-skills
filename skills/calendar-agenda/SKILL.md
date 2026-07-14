@@ -3,7 +3,7 @@ name: calendar-agenda
 description: Show the user's upcoming meetings from Google Calendar — today and the days ahead — with times, attendees, location/join link, and their RSVP status. Flags conflicts/overlaps, back-to-backs, and meetings they haven't responded to. Read-only — it never creates, edits, or RSVPs to events without explicit approval.
 ---
 
-> **⚙️ Setup:** Replace `<YOUR_WORKSPACE_EMAIL>` and `<your timezone>` with your own before first use.
+> **⚙️ Setup:** This skill reads your context (workspace email, timezone) from `~/.claude/profile.md`. Run `/setup-profile` once after cloning — it auto-detects those and writes the profile. No need to edit this file.
 
 # Calendar Agenda — What meetings do I have?
 
@@ -11,7 +11,7 @@ description: Show the user's upcoming meetings from Google Calendar — today an
 
 Answer "**What's on my calendar?**" fast: today's meetings first, then the days ahead — each with time, who's invited, where/how to join, and whether the user has RSVP'd. Surfaces **conflicts**, **back-to-backs**, and **un-answered invites** so nothing slips. Read-only by default.
 
-> The Google Workspace MCP is already authenticated to **<YOUR_WORKSPACE_EMAIL>**. Do not create, edit, delete, or RSVP to events unless the user explicitly asks, and confirm first.
+> The Google Workspace MCP is already authenticated to **your workspace email** (`workspace_email` in `~/.claude/profile.md`). Do not create, edit, delete, or RSVP to events unless the user explicitly asks, and confirm first.
 
 ---
 
@@ -27,14 +27,14 @@ Confirm the Google Workspace MCP is connected (call `list_calendars` — it shou
 |---|---|---|
 | **Window** | today + next 7 days | "today" / "tomorrow" / "this week" / "next week" → adjust `time_min`/`time_max` |
 | **Calendar(s)** | `primary` | the user also has shared calendars (e.g. team OOO, Assembled); include others only if asked |
-| **Timezone** | the user's tz (<your timezone>) | render all times in the user's local tz |
+| **Timezone** | the user's tz (`timezone` from profile) | render all times in the user's local tz |
 | **Detail** | attendees + location + link | `detailed: true` |
 
 ---
 
 ## Step 1 — Resolve calendars & window
 
-- `list_calendars` to confirm `primary` (= `<YOUR_WORKSPACE_EMAIL>`). Use other calendars only if the user names them.
+- `list_calendars` to confirm `primary` (= `workspace_email` from your profile). Use other calendars only if the user names them.
 - Compute `time_min`/`time_max` in RFC3339 for the requested window. Default `time_min` = start of today (user tz), `time_max` = end of today + 7 days. For "today" use start→end of today; "tomorrow" the next day; etc.
 
 ## Step 2 — Pull events
