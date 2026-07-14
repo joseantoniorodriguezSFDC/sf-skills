@@ -1,6 +1,6 @@
 ---
 name: setup-profile
-description: One-time setup for the sf-skills toolkit. Detects the user's context (workspace email, timezone, Slack user id, OrgCS org) from the MCPs they've already connected, confirms each value with them, and writes ~/.claude/profile.md — the single file every other skill reads for who-you-are context. Run this once after cloning the repo; run again anytime a value changes. Read-only except for writing the profile file.
+description: One-time setup for the sf-skills toolkit. Detects the user's context (workspace email, timezone, Slack user id, OrgCS org) from the MCPs they've already connected, confirms each value with them, offers to create the brag/weekly Slack canvases they don't have yet, and writes ~/.claude/profile.md — the single file every other skill reads for who-you-are context. Run this once after cloning the repo; run again anytime a value changes. Read-only except for writing the profile file and (only on your yes) creating those canvases.
 metadata:
   author: "Jose Antonio Rodriguez — Success Guide"
 ---
@@ -20,8 +20,9 @@ confirm. It is the Claude-native replacement for a setup script — a bash scrip
 can't reach your MCPs; this can.
 
 > **Run this once** after `git clone`. Re-run anytime something changes (new
-> timezone, new Slack workspace). It only ever writes `~/.claude/profile.md` —
-> nothing else, nothing outward-facing.
+> timezone, new Slack workspace). It writes `~/.claude/profile.md`, and — only if
+> you say yes — creates the brag/weekly Slack canvases you don't have yet (Step 2.5).
+> Nothing else, nothing else outward-facing.
 
 ---
 
@@ -56,13 +57,33 @@ Present a compact table: **field · detected value · source**. Ask the user to
 confirm or correct each. Explicitly ask for the optional references (they
 can't be detected):
 
-- `field_guide_canvas_url` — their "MCP vs CLI vs Skills" companion canvas, if any.
-- `weekly_note_canvas_url` — their ETRAB weekly-note template canvas, if any.
 - `booking_link` — their self-service scheduling URL (inlined into customer email drafts + AE kickoffs).
-- `brag_canvas_url` — their brag-book Slack canvas, if they keep one.
-- `guide_channel_id` — the team guide channel they share content in.
+- `guide_channel_id` — the team guide channel they share content in (a channel id).
+- `field_guide_canvas_url` — their "MCP vs CLI vs Skills" companion canvas, if any.
+- `brag_canvas_url` / `weekly_note_canvas_url` — Slack canvases they **own**. Most new
+  users won't have these yet — don't just leave them blank; go to Step 2.5.
 
 Let them leave any field blank.
+
+## Step 2.5 — Offer to create the canvases they're missing
+
+`brag_canvas_url` (for `brag-book`) and `weekly_note_canvas_url` (for `etrab-weekly-note`)
+point at Slack canvases the user owns — and a fresh user has neither. For each one they
+don't already have, **offer to create it** (only on their yes) via `slack_create_canvas`,
+then use the returned URL as the field value:
+
+- **Brag book** — title it e.g. *My Brag Book*. Seed the structure from
+  [`brag-book`](../brag-book/SKILL.md): a **Running Tally** table at the top
+  (type · count · notes) plus one empty table per contribution type (Team Assists,
+  Mentorship, Mock Calls & Shadowing, Sessions & Enablement, Content & Docs Shared,
+  Skills & Certs). Honor that skill's canvas-markdown rules (no `####`+, `![](@U…)`
+  for users, `![](#C…)` for channels).
+- **ETRAB weekly** — title *ETRAB Weekly — Actionable Items & Stage Recommendations*.
+  Seed a timestamped header, a placeholder per-engagement section, and a Stage-flip
+  table (structure per [`etrab-weekly-note`](../etrab-weekly-note/SKILL.md) Step 8.5).
+
+If Slack isn't connected, or they'd rather build it by hand, leave the field blank and
+point them at [`SETUP.md`](../../SETUP.md) §4. **Never create a canvas without confirmation.**
 
 ## Step 3 — Write the profile
 
@@ -90,9 +111,10 @@ lookups in Step 1) and should suggest running `/setup-profile` to make it durabl
 
 ## Guardrails
 
-- **Read-only except the profile.** Only writes `~/.claude/profile.md` (with
-  confirmation). Never touches skill files, never sends anything.
+- **Read-only except the profile — and one opt-in canvas.** Writes
+  `~/.claude/profile.md`, and only on an explicit yes creates a brag/weekly Slack
+  canvas (Step 2.5). Never touches skill files, never posts to a channel or DMs anyone.
 - **Detect, don't interrogate.** Ask only for what genuinely can't be detected
-  (the optional canvas links) or for confirmation of a detected value.
+  (the optional links, the canvases) or for confirmation of a detected value.
 - **Never store secrets.** Emails, ids, and timezone only — no tokens, no
   passwords. OAuth secrets live in `~/.claude.json` and are out of scope here.

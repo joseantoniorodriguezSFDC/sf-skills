@@ -27,7 +27,9 @@ Then, in Claude Code, run:
 /setup-profile
 ```
 
-It auto-detects your email, timezone, Slack id, and org from the MCPs you've already connected, asks you to confirm, and fills `~/.claude/profile.md`. Every skill reads from there — so you never hand-edit a `SKILL.md`, and `git pull` for skill updates never clobbers your settings.
+It auto-detects your email, timezone, Slack id, and org from the MCPs you've already connected, asks you to confirm, and fills `~/.claude/profile.md`. Every skill reads from there — so you never hand-edit a `SKILL.md`, and `git pull` for skill updates never clobbers your settings. It also **offers to create the two Slack canvases you won't have yet** — your brag book and your ETRAB weekly note — and writes their URLs into the profile.
+
+> **New to the toolkit?** [`SETUP.md`](./SETUP.md) is the full step-by-step walkthrough — installing, connecting the MCP servers, running `/setup-profile`, and creating the canvases you're missing.
 
 > ⚠️ **Never commit `~/.claude/profile.md`** — it identifies you. The repo ships only the blank `profile.template.md`. (Same rule as `~/.claude.json`, which holds your MCP OAuth secrets.)
 
