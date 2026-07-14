@@ -19,7 +19,7 @@ After a customer call you often run four separate motions by hand — a customer
 
 It is the **interactive front door for post-call follow-up.** It **routes and synthesizes — it does not re-implement** the task skills; the homework and the canvas are delegated to `call-next-steps` and `discovery-call-canvas` so there's exactly one writer for each.
 
-> **Send policy (state it up front, every run).** The **customer recap email is DRAFT-only** — never auto-sent. The **internal AE/CSM Slack summary auto-sends**, but only to a **confidently-resolved internal** target (case channel → engagement channel → DM the AE) **and, for a channel, only one you're already a member of** (public ≠ usable). Anything ambiguous, external, Slack-Connect, or a channel you're not in falls back to a **DM to the AE or a hand-paste draft**. Nothing is ever written to Salesforce (a support org / CRM org are read-only).
+> **Send policy (state it up front, every run).** The **customer recap email is DRAFT-only** — never auto-sent. The **internal AE/CSM Slack summary auto-sends**, but only to a **confidently-resolved internal** target (case channel → engagement channel → DM the AE) **and, for a channel, only one you're already a member of** (public ≠ usable). Anything ambiguous, external, Slack-Connect, or a channel you're not in falls back to a **DM to the AE or a hand-paste draft**. Nothing is ever written to Salesforce (a support org / CRM org are read-only) — so for a **case**, the internal recap is handed back as a **paste-ready OrgCS case comment** (Published unchecked) you drop onto the case; for an **engagement** (no case to comment on) the Gmail draft stays the record.
 
 ---
 
@@ -31,6 +31,7 @@ It is the **interactive front door for post-call follow-up.** It **routes and sy
 | 2 | Internal AE/CSM Slack summary | resolve channel → `slack_send_message` | **Auto-send** to internal target, else draft |
 | 3 | Your homework → Google Tasks | delegate to `/call-next-steps` | Writes tasks (its own draft-and-confirm) |
 | 4 | Refreshed next-call canvas | delegate to `/discovery-call-canvas` (next-call mode) | Updates the persistent canvas |
+| 5 | Internal Case Comment (**CASE anchor only**) | render the internal recap as an OrgCS paste block (Published unchecked) | **Paste onto the case** — the record stays in OrgCS; auto-inserts as `CaseComment` if a write MCP lands. Engagements skip it — the Gmail draft is their record |
 
 ---
 
@@ -64,7 +65,7 @@ If nothing is provided, ask for the notes or the Doc link — don't proceed on a
 
 Read the blob **one time** and pull everything the four outputs need — never re-extract downstream:
 - **Account** + **call date** (call date, not today, anchors "X days after the call" math). If several accounts appear or it's ambiguous, ask.
-- **Anchor type — CASE or ENGAGEMENT (decide at attach time).** Classify up front which one these notes belong to, because it makes Step-7 routing deterministic (case → case channel; engagement → engagement channel). Infer it when obvious — an OrgCS case #/"case" language → **case**; an active `csc__Playbook__c` engagement + its `ZC:` channel → **engagement**. **If it isn't clearly one or the other, ASK the user before routing** — never try both tiers and spin. Once decided, that tier is the primary target in Step 7. See [[feedback-autosend-member-channels-only]].
+- **Anchor type — CASE or ENGAGEMENT (decide at attach time).** Classify up front which one these notes belong to, because it makes routing deterministic: Step 7 (case → case channel; engagement → engagement channel) **and Step 7.5** (a **case** gets a paste-ready OrgCS case comment; an **engagement** doesn't — its record stays the Gmail draft). Infer it when obvious — an OrgCS case #/"case" language → **case**; an active `csc__Playbook__c` engagement + its `ZC:` channel → **engagement**. **If it isn't clearly one or the other, ASK the user before routing** — never try both tiers and spin. Once decided, that tier is the primary target in Step 7. See [[feedback-autosend-member-channels-only]].
 - **Contact first name** — read it from the notes / signature; **never infer it** from an email handle. See [[feedback-verify-contact-first-name]].
 - **Customer-facing recap + decisions** (for the email + the Slack summary).
 - **Your technical claims** — anything customer-facing you asserted about a Salesforce capability (for Step 4 verification).
@@ -123,6 +124,27 @@ Invoke Skill **`call-next-steps`**, handing it the **same Step-1 blob + the alre
 
 Return the message permalink (or the draft/hand-paste block + the reason it wasn't auto-sent).
 
+## Step 7.5 — Output 5: internal Case Comment for OrgCS (CASE anchor only)
+
+**Only when the Step-2 anchor is a CASE.** A case lives in the support org (OrgCS), so the durable record of this call belongs **on the case** — as an internal comment the account team and other guides can see in OrgCS, not the customer. For an **ENGAGEMENT** anchor there's no case to comment on: **skip this step** — the Gmail draft (Step 5) stays the engagement's record. This is why the anchor is decided back in Step 2.
+
+Render the **same synthesized internal recap** from Step 7 (don't compose a divergent one — reconcile them) into a paste-ready block: plain text, **no blockquotes**, same language as the recap.
+
+```
+─ Internal Case Comment (paste → OrgCS, Published unchecked) ─
+Case <CaseNumber> · <Account>
+
+Recap: <call summary>
+Decisions: <…>
+Next steps (mine): <…>
+Customer next steps: <…>
+────────────────────────────────────
+```
+
+- **How to log it:** on the case in OrgCS, use **Add Case Comment** (or the case-feed Comment action) and **leave "Published" unchecked** — that keeps the comment support-internal (visible to the account team + guides in OrgCS, never the customer). Paste the block body.
+- **Read-only today — you commit the paste.** Claude does not write to OrgCS. The block maps 1:1 to a `CaseComment`: `ParentId` = the case Id (from Step 3), `CommentBody` = the block body, `IsPublished = false` (= "Published" unchecked). Never claim it saved.
+- **Auto-insert when write access lands.** If a write-enabled OrgCS MCP is ever connected (a `sobject-mutations`-style tier exposing record `create`/`insert`), this step **inserts the `CaseComment` directly** (`ParentId` / `CommentBody` / `IsPublished=false`) and returns the record link instead of the paste block — same content, nothing else changes. Detect it by checking for an OrgCS create/insert tool at run time; default to the paste block when it's absent. See [[orgcs-case-comment-paste-ready]].
+
 ## Step 8 — Output 4: refresh the next-call canvas (delegate, idempotent)
 
 Invoke Skill **`discovery-call-canvas`** in **next-call mode** (see that skill), passing the Step-3 context + the canonical notes + carry-forward next steps. It **searches for this account/case's existing canvas and updates (replaces) it — creating a new one only if none exists** — so it refreshes rather than proliferates. Return the canvas link. See [[discovery-call-canvas-skill]] and the persistent-canvas pattern in [[etrab-weekly-canvas]].
@@ -136,6 +158,7 @@ Reconcile across the outputs (the same commitment shows up once) and hand back l
 
 ✍️ Customer email — DRAFT ready: <gmail draft link>
 💬 Internal summary — ✅ auto-sent to <#channel> : <permalink>   (or) ⚠️ draft only — <reason>: <block/link>
+🗂️ OrgCS case comment — paste-ready (Published unchecked): <block>   (CASE anchor; engagement → the Gmail draft is the record)
 ✅ Your homework — N tasks filed to Customer Next Steps (M already-tracked skipped)
 📋 Next-call canvas — refreshed: <canvas link>
 
@@ -150,6 +173,7 @@ Reconcile across the outputs (the same commitment shows up once) and hand back l
 ## Output Standards
 - **One paste in, the whole 360 out** — extract once (Step 2); every output reads the same blob so the email, Slack summary, and tasks never diverge.
 - **Customer email = draft only.** The only auto-send is the internal Slack summary, and only to a confidently-resolved internal target **that's a channel you're a member of (or a DM to the right AE)**; else draft-for-hand-paste.
+- **The case is the record.** For a CASE anchor, the internal recap is handed back as a paste-ready OrgCS case comment (**Published unchecked** = support-internal) so it lands in the system of record; an engagement keeps the Gmail-draft record. Read-only today — you paste; auto-inserts as `CaseComment(IsPublished=false)` if a write-enabled OrgCS MCP ever lands.
 - **Delegate, don't duplicate.** `call-next-steps` is the sole task-writer; `discovery-call-canvas` is the sole canvas-writer. Reconcile the Slack "next steps" against the filed tasks.
 - **Standards carry through:** verified claims only, signature, LATAM Spanish, no blockquotes, booking link when a meeting is asked, real contact first name.
 - **Anchor "now"; every date absolute.** Report the as-of time + timezone.
@@ -163,6 +187,7 @@ Reconcile across the outputs (the same commitment shows up once) and hand back l
 | No channel found (engagement anchor, or can't create) | Handled | Falls back to DM the core AE (+CSM if Signature), or a hand-paste draft — never a wrong-channel send |
 | Auto-posting to a channel you're not in | Fenced (v1.1) | Public ≠ usable; confirm membership (`slack_list_channel_members`) or that you created it, else DM the AE / draft |
 | Can't post to external / Slack-Connect channels | Platform ([[slack-mcp-limits]]) | Hand-paste block for customer/partner-facing targets |
+| Can't write the case comment to OrgCS (read-only) | Handled | Paste-ready block, Published unchecked; auto-inserts as `CaseComment(IsPublished=false)` if a write-enabled OrgCS MCP lands ([[orgcs-case-comment-paste-ready]]) |
 | No case channel exists for a CASE anchor | Handled (v1.1) | Create it inline by reusing `ae-syncup-channel`'s creation step (invite core AE + CSM-if-Signature); you become the member, satisfying the auto-send fence |
 | Owner attribution depends on the notes | Observed | When ownership is unclear, ask rather than assume |
 | SF/Google auth can drop mid-run | Platform | Re-auth `/mcp` (support/CRM org) or `/mcp reconnect` (Google gateway) |

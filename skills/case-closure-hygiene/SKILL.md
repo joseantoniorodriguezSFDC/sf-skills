@@ -22,7 +22,7 @@ A Success Guide's closure/cancelation/CSAT metrics hinge on cases being **closed
 - **CSAT actually fires** (Contact Name verified),
 - open cases stay hygienic (regular comments, live follow-up date) so time-to-resolve trends down.
 
-> **Read-only + draft — never writes to Salesforce.** If your support-org MCP is read-only, this skill *tells you which fields to set* and *drafts* the outreach; **you** make the changes in the support-org UI. It never claims to have saved anything.
+> **Read-only + draft — never writes to Salesforce.** If your support-org MCP is read-only, this skill *tells you which fields to set* and *drafts* the outreach **and the final case comment (paste-ready, Published unchecked — Step 3.5)**; **you** make the changes in the support-org UI. It never claims to have saved anything.
 
 > **⚙️ Subagent discipline.** Runs **inline by default** — a single case is 2–3 bulk reads. Fan out **only** for a full-backlog sweep — then one subagent per batch, never per case.
 
@@ -55,7 +55,7 @@ Many support orgs run cases through **New → Qualification → Delivery → Clo
 3. **Files** — upload delivery assets (deck / doc).
 4. **Delivery Language** field = language delivered in.
 5. **Program / offer** field correct.
-6. **Final case comment** added.
+6. **Final case comment** added — the skill drafts it paste-ready (Published unchecked) for you in Step 3.5.
 7. **Close Case** action → set **Status=`Closed`, Sub-Status=`Completed`**, **Case Cause** best-fit.
 8. Create any **follow-up case** if needed.
 9. **Notify the account team / case creator** with a summary; flag **attrition risk → renewal mgr** or **upsell → AE** if either applies.
@@ -135,6 +135,24 @@ For non-responsive cases inside the 3-attempts-over-2-weeks window, draft the SO
 - Append your standard **email signature** block.
 - Drafts only — nothing sent from this skill.
 
+## Step 3.5 — Draft the final case comment (paste-ready → OrgCS, Published unchecked)
+
+When the verdict is **close as Completed** (close-out step 6) — or a cancel/redirect that needs documenting — draft the **final case comment**: the internal record of the outcome, so it lives on the case in the support org, not just in your head. Plain text, **no `>` blockquotes**, same console format the post-call flow uses:
+
+```
+─ Internal Case Comment (paste → OrgCS, Published unchecked) ─
+Case <CaseNumber> · <Account>
+
+Outcome: <what was delivered / why closing / cancel-redirect reason>
+Delivered: <resources / recap sent to the customer>
+Coding: Sub_Status__c = <Completed / Canceled / Redirected>, Case_Cause__c = <best-fit> (+ Sub-Cause)
+Follow-up: <new case / none>
+────────────────────────────────────
+```
+
+- **How to log it:** on the case, **Add Case Comment** and **leave "Published" unchecked** (support-internal, never customer-visible), then paste the block body.
+- **Read-only today — you commit the paste.** It maps 1:1 to a `CaseComment` (`ParentId` = the case Id, `CommentBody` = the block body, `IsPublished = false` = "Published" unchecked). If a write-enabled support-org MCP ever lands (a `sobject-mutations`-style `create`), this inserts the `CaseComment` directly instead of handing you a block — same content. Never claim it saved. See [[orgcs-case-comment-paste-ready]].
+
 ---
 
 ## Output Standards
@@ -150,6 +168,7 @@ For non-responsive cases inside the 3-attempts-over-2-weeks window, draft the SO
 | Limitation | Status | Workaround |
 |---|---|---|
 | Support-org MCP may be read-only | By design | Skill advises exact field values; user edits in the UI |
+| Can't write the final case comment | Handled | Drafts it paste-ready (Published unchecked); auto-inserts as `CaseComment(IsPublished=false)` if a write-enabled support-org MCP lands ([[orgcs-case-comment-paste-ready]]) |
 | "Was real work delivered?" isn't always machine-knowable | By design | Flag "verify delivery" before coding Completed |
 | Outreach-attempt count inferred from EmailMessage only | v1 | Cross-check with case comments; user confirms |
 | Field API names / picklist values are org-specific | Data | Verify with `getObjectSchema('Case')` before trusting the SOQL |
