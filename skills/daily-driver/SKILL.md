@@ -7,8 +7,10 @@ metadata:
   last_updated: "2026-07-08"
   author: "Antonio Magana — Success Guide"
   audience: "Success Guides using Claude Code for daily triage"
-  companion_cron: "TWICE-DAILY DIGEST (weekdays, morning & midday, in <your timezone>)"
+  companion_cron: "TWICE-DAILY DIGEST (weekdays, morning & midday, in your timezone)"
 ---
+
+> **⚙️ Setup:** This orchestrator and the skills it routes to read your context (timezone, Slack id) from `~/.claude/profile.md`. Run `/setup-profile` once after cloning. No need to edit this file.
 
 # Daily Driver — "Catch me up" orchestrator
 
@@ -36,7 +38,7 @@ It's the **on-demand twin of the twice-daily digest cron** (which runs the same 
 
 ## Step 0 — Guardrails (apply to every run)
 
-1. **Anchor "now" first.** Call `getUserInfo` (OrgCS) *and* note the current time in the user's timezone (`<your timezone>`) at the moment the run fires. Classify every timestamp (email, event, case, Slack) as past / now / upcoming against that anchor — never against a scheduled slot. See [[feedback-cron-time-anchor]].
+1. **Anchor "now" first.** Call `getUserInfo` (OrgCS) *and* note the current time in the user's timezone (`timezone` from `~/.claude/profile.md`, or `getUserInfo` → `userTimeAndLocale.timeZoneIana`) at the moment the run fires. Classify every timestamp (email, event, case, Slack) as past / now / upcoming against that anchor — never against a scheduled slot. See [[feedback-cron-time-anchor]].
 2. **Read-only + least outbound.** OrgCS/Gmail/Calendar are read-only here. The only interactive write is an **approved** engagement nudge — draft-and-confirm, never auto-send (auto-send is a cron-only guardrailed behavior).
 3. **Sensitive data.** OrgCS case + engagement content is real customer/support data — respect CSG/Claude data-handling before putting any of it anywhere external.
 4. **Check MCP health before blaming empty results.** If OrgCS 401s → re-auth at `/mcp` (orgcs custom domain). If Google errors "connection reset by peer" → `/mcp reconnect` (gateway, not re-auth — [[gworkspace-mcp-gateway-outage]]). Report the gap; don't silently return "all clear."

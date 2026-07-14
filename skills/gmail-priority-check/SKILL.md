@@ -3,7 +3,7 @@ name: gmail-priority-check
 description: Scan the user's Gmail for email that actually needs attention — messages sent directly TO them (not cc/bcc/list blasts) and messages that read as imperative (urgent, deadline, action-requested, a direct question). Ranks them into "Needs your attention" vs "FYI" with a one-line reason each. Read-only — it never sends, replies, archives, or labels without explicit approval.
 ---
 
-> **⚙️ Setup:** Replace `<YOUR_WORKSPACE_EMAIL>` (and any `<PLACEHOLDER>`) with your own before first use.
+> **⚙️ Setup:** This skill reads your context from `~/.claude/profile.md`. Run `/setup-profile` once after cloning — it auto-detects your workspace email and writes the profile. No need to edit this file.
 
 # Gmail Priority Check — What actually needs my attention
 
@@ -13,7 +13,7 @@ Cut the inbox down to what matters: **"Which recent emails were sent directly to
 
 The skill runs a few targeted Gmail searches, pulls the messages, scores each on **directness** (am I a real To: recipient?) and **imperativeness** (urgent / deadline / action-requested / a question aimed at me), and presents a ranked list with a one-line "why" per item. It is **read-only** by default.
 
-> The Google Workspace MCP is already authenticated to **<YOUR_WORKSPACE_EMAIL>** — no email argument is needed. Do not send, reply, archive, delete, or relabel anything unless the user explicitly asks, and confirm first (outward-facing / hard-to-reverse).
+> The Google Workspace MCP is already authenticated to **your workspace email** (`workspace_email` in `~/.claude/profile.md`) — no email argument is needed. Do not send, reply, archive, delete, or relabel anything unless the user explicitly asks, and confirm first (outward-facing / hard-to-reverse).
 
 ---
 
@@ -30,7 +30,7 @@ Confirm the Google Workspace MCP is connected (`claude mcp list` → the `google
 | **Window** | last 3 days (`newer_than:3d`) | widen to 7d for the imperative sweep; tunable |
 | **Read state** | unread + read both, but flag unread | the user often wants unread-only — honor "just unread" → add `is:unread` |
 | **Scope** | `in:inbox`, exclude `from:me` | ignore Sent; optionally include other folders if asked |
-| **Account** | the authenticated account (primary) | `<YOUR_WORKSPACE_EMAIL>` |
+| **Account** | the authenticated account (primary) | `workspace_email` from your profile |
 
 ---
 

@@ -7,8 +7,10 @@ metadata:
   last_updated: "2026-07-08"
   author: "Antonio Magana — Success Guide"
   audience: "Success Guides using Claude Code for Salesforce"
-  companion_canvas: "https://<your-workspace>.slack.com/docs/<SLACK_TEAM_ID>/<CANVAS_ID>  # internal Field Guide canvas — replace with your own"
+  companion_canvas: "see field_guide_canvas_url in ~/.claude/profile.md — the internal Field Guide canvas"
 ---
+
+> **⚙️ Setup:** The optional companion Field Guide canvas is read from `field_guide_canvas_url` in `~/.claude/profile.md`. Run `/setup-profile` once after cloning. No need to edit this file.
 
 # Salesforce Tool Router
 
