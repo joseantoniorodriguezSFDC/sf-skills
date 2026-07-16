@@ -3,8 +3,8 @@ name: case-closure-hygiene
 description: "Runs a support org's closure SOP checklist on a Success Guide's cases — so real work lands as a countable Completed close, cancelations are coded correctly (Duplicate / out-of-scope Redirect), CSAT actually fires, and open cases stay hygienic (regular comments, follow-up date). Read-only + draft: it inspects a case, tells you exactly which fields to fix (you set them in the support-org UI), and drafts SOP outreach for non-responsive customers. TRIGGER when: user says 'closure check', 'is this case ready to close', 'case hygiene', 'clean up my cases', 'why isn't this counting', or before closing/canceling a case. DO NOT TRIGGER when: the user wants qualitative-contribution logging (that's /brag-book) or the daily digest (that's the cron)."
 metadata:
   type: orchestrator
-  version: "1.0"
-  last_updated: "2026-07-08"
+  version: "1.4"
+  last_updated: "2026-07-15"
   author: "Success Guide"
   audience: "Success Guides protecting closure/cancelation/CSAT metrics"
 ---
@@ -93,14 +93,46 @@ ORDER BY ClosedDate DESC
 
 ## Step 1 — Read the case's real state (inline, bulk)
 
+> **The case's OWN records are ground truth — read them before deciding anything is "unsent," "owed," or "ready to chase."** In many support orgs case emails are sent from a shared address (e.g. `customersupport@salesforce.com`) and live on the case as `EmailMessage`; they do **NOT** land in your personal Gmail, so never infer "no deliverables were sent" from your inbox or from case age alone. Read the latest outbound **body** (below) — if it already contains the resources/recap, close-out step 1 is **done** and the case is likely READY TO CLOSE, not chased. The `CaseComment` feed is also where the guide mirrors each email and pastes the **account-team / case Slack channel link** — harvest that link when you notify the account team (close-out step 9) instead of hunting for the channel.
+
 For each in-scope case:
-- Latest **CaseComments** (is the newest older than your comment cadence? is `Next_Follow_up_Date__c` null or past?).
-- Latest **EmailMessage** (who spoke last, when — the outreach-attempt count).
+- **CaseComments** — newest comment (older than your comment cadence?), `Next_Follow_up_Date__c` (null or past?), and the mirrored **email links + account-team / case Slack channel link** to reuse when you notify the account team (close-out step 9):
+```soql
+SELECT ParentId, CommentBody, IsPublished, CreatedDate, CreatedBy.Name FROM CaseComment
+WHERE ParentId = '<caseId>' ORDER BY CreatedDate DESC
+```
+- **EmailMessage** — who spoke last, when, and the outreach-attempt count:
 ```soql
 SELECT ParentId, Incoming, MessageDate, Subject FROM EmailMessage
 WHERE ParentId = '<caseId>' ORDER BY MessageDate DESC
 ```
+- **Read the BODY of the latest outbound** (`Incoming = false`) — metadata alone can't tell you whether deliverables actually went out (close-out step 1); this is what prevents a redundant "send resources" chase:
+```soql
+SELECT TextBody, MessageDate, Subject FROM EmailMessage
+WHERE ParentId = '<caseId>' AND Incoming = false ORDER BY MessageDate DESC LIMIT 1
+```
 - Count **outbound** emails since last inbound → the attempt number for the non-responsive clock.
+
+## Step 1.5 — Entitlement lookup: Account → Asset Line Items (editions, add-ons, license counts)
+
+When a case turns on **what the customer actually owns** — a licensing/entitlement question, "do they have the edition/add-on/SKU for X", a product-prerequisite check — **look here FIRST, not "ask the account team."** In many orgs the purchased-products feed is federated onto the **Account's Asset Line Items related list** (a CPQ external object — in this org `Apttus_Config2_AssetLineItem__x` via the `Asset_Line_Items__r` relationship, keyed by an Account-Id field). **Verify the object/relationship/field names against your own org** with `getObjectSchema('Account')` before relying on the SOQL.
+
+- **UI path:** open the Account → related list **Asset Line Items**.
+- **⚠️ Query it via the Account relationship subquery — NOT a direct filter on the external object.** A direct `SELECT … FROM <AssetLineItem__x> WHERE <AccountIdField> = '<id>'` is **unreliable**: the OData equality filter may not push down and can silently return **zero rows for a fully-federated account**. Never trust a zero from that form. Traverse from the Account instead (this is the path the Lightning related list uses):
+
+```soql
+SELECT Id, Name,
+       (SELECT Id, Name__c, <LineType>, <Quantity>, <IsInactive>, <StartDate>, <EndDate>
+        FROM Asset_Line_Items__r)
+FROM Account WHERE Id = '<AccountId>'
+```
+
+- **Active only:** keep lines where the inactive flag is `false` AND the end date is in the future vs the Step-0 anchor. Inactive/expired lines are history — prior terms, lapsed **trials**, negative-quantity true-up adjustments. Don't report a lapsed trial as a current entitlement.
+- **Read the EDITION off the "… - Enterprise/Unlimited Edition" line; read ADD-ONS off their own lines.** An active, in-term add-on line = they own it. Quantity = seat count (net out negatives).
+- **What still needs the account team:** raw ownership (edition, add-on present, seat counts, term) is now confirmed from data — say so, drop the blanket "confirm with account team." Asset Line Items can't answer: consumption/credit balances, whether an add-on's units cover a specific sub-feature, contract nuance, roadmap, or an account that genuinely returns no lines.
+- **If Asset Line Items can't confirm a SKU/license/add-on → ask the account team via the case's internal Slack channel.** Post a concise confirmation request naming the exact SKU/entitlement question + the case link to the case's channel (`case-<last6>-<account-slug>`; fall back to a DM to the core account executive, plus the CSM only for the top support tier). **Internal only** — never to the customer, never a Slack Connect/external channel; if the target is external or unresolvable, produce a paste-ready draft instead of sending. The customer email stays draft-only regardless.
+
+This is the first stop for the Step 3.6 licensing/entitlement research before any escalation caveat.
 
 ## Step 2 — Produce the hygiene checklist (per case)
 
@@ -132,6 +164,7 @@ Outreach clock (if non-responsive):
 For non-responsive cases inside the 3-attempts-over-2-weeks window, draft the SOP-templated touch (plain text, **no `>` blockquotes**; localized language matching the thread; verify the contact's **first name** from the thread's From/signature, never the email handle):
 
 - **1st / 2nd / 3rd touch** per your SOP templates; a meeting-ask touch includes your `booking_link` (from `~/.claude/profile.md`) inline.
+- **Guide, don't implement.** On case work a Success Guide guides/enables — never offers to configure the customer's org or "run the setup" for them. Frame working-session offers as guided enablement ("I'll walk your team through it"). **Never offer a solution architect unless the account's success-plan tier includes a CSM** — no CSM means no architect path (e.g. a Premier-tier account without a CSM). Confirm the tier first.
 - Append your standard **email signature** block.
 - Drafts only — nothing sent from this skill.
 
@@ -153,6 +186,16 @@ Follow-up: <new case / none>
 - **How to log it:** on the case, **Add Case Comment** and **leave "Published" unchecked** (support-internal, never customer-visible), then paste the block body.
 - **Read-only today — you commit the paste.** It maps 1:1 to a `CaseComment` (`ParentId` = the case Id, `CommentBody` = the block body, `IsPublished = false` = "Published" unchecked). If a write-enabled support-org MCP ever lands (a `sobject-mutations`-style `create`), this inserts the `CaseComment` directly instead of handing you a block — same content. Never claim it saved. See [[orgcs-case-comment-paste-ready]].
 
+## Step 3.6 — Research-backed response for owed deliverables (on-demand read-only subagent)
+
+When a case owes the customer a **substantive answer or resource that needs research to answer well** — a licensing/entitlement question, an implementation/setup guide, a "how do I…" that should cite official docs, or a product-capability confirmation ("check with Product whether X is supported") — don't draft from memory. Deploy a **read-only research subagent** to gather a resource pack first, so the reply is grounded in current official sources:
+
+- The subagent reads the case's own records (`EmailMessage` body + `CaseComment` feed, per Step 1) to pin the EXACT ask, then searches **Salesforce Help/Docs** + **Trailhead**, and returns a **resource pack** (title · official URL · 1-line relevance) plus a resource-backed **draft reply** in the Step-3 standards (no `>` blockquotes; localized language matching the thread; booking link on meeting asks; your signature).
+- **For licensing/entitlement asks, run Step 1.5 FIRST** — pull the Account's Asset Line Items (relationship subquery) and confirm the edition / add-on / seat count / term straight from data before drafting. Only what Asset Line Items can't answer (consumption/credit balances, sub-feature coverage, contract nuance, roadmap) gets the "confirm with the account team" caveat.
+- **Verify before asserting.** Confirmed doc facts go in the reply; anything org/contract-specific not resolved by Step 1.5 (pricing, roadmap, sub-feature nuance) is flagged "confirm with the account team," never invented.
+- **Subagent discipline:** inline for a single owed item; fan out **one subagent per owed deliverable** only when researching several at once (a full-backlog sweep, or a scheduled owed-deliverable pass). Time-box each (~4 min).
+- **Draft/text only — never sends.** Same fence as the rest of the skill: customer email is draft text for copy-paste; nothing is sent and nothing is written to Salesforce.
+
 ---
 
 ## Output Standards
@@ -171,7 +214,9 @@ Follow-up: <new case / none>
 | Can't write the final case comment | Handled | Drafts it paste-ready (Published unchecked); auto-inserts as `CaseComment(IsPublished=false)` if a write-enabled support-org MCP lands ([[orgcs-case-comment-paste-ready]]) |
 | "Was real work delivered?" isn't always machine-knowable | By design | Flag "verify delivery" before coding Completed |
 | Outreach-attempt count inferred from EmailMessage only | v1 | Cross-check with case comments; user confirms |
+| Email metadata alone can't confirm deliverables were sent, so a delivered case looked like it still owed a "send resources" email | Fixed v1.1 (2026-07-15) | Step 1 reads the latest outbound `TextBody` + harvests the account-team / case Slack channel link from `CaseComment`; never infer "unsent" from personal Gmail or age |
 | Field API names / picklist values are org-specific | Data | Verify with `getObjectSchema('Case')` before trusting the SOQL |
+| A direct filter on the Asset Line Items external object (`… WHERE <AccountIdField>=…`) can silently return 0 rows for a federated account (OData filter doesn't push down) | Fixed v1.3 (2026-07-15) | Step 1.5 reads Asset Line Items via the **Account relationship subquery** (`(SELECT … FROM Asset_Line_Items__r) FROM Account WHERE Id=…`); never trust a zero from the direct-filter form; verify object/field names with `getObjectSchema('Account')` |
 
 ## Related
 

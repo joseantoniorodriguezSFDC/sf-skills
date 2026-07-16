@@ -3,8 +3,8 @@ name: orgcs-case-age
 description: "Reads a Success Guide's OrgCS cases and flags ones where the customer hasn't responded in more than N business days (default 2), then sends a Slack alert. TRIGGER when: user says 'bring me up to date with my cases', 'check my stale cases', 'which cases are waiting on the customer', 'case age check', or asks who hasn't responded. DO NOT TRIGGER when: the user wants to create/update a case (OrgCS MCP is read-only), or is working in a demo/trial org (use the salesforce-sobject-all connection instead)."
 metadata:
   type: orchestrator
-  version: "1.1"
-  last_updated: "2026-06-09"
+  version: "1.2"
+  last_updated: "2026-07-15"
   author: "Jose Antonio Rodriguez — Success Guide"
   audience: "Success Guides triaging their OrgCS case load"
 ---
@@ -20,6 +20,8 @@ Answer one question fast: **"Which of my open OrgCS cases has the customer gone 
 The skill reads the Success Guide's open, waiting-on-customer cases from the **read-only OrgCS MCP server**, inspects each case's email thread **and its internal case comments** to find the real last activity, flags any case where the **customer** has gone quiet **more than 2 business days** (tunable) *and* nothing is already in motion, and sends a Slack alert with the case numbers.
 
 > **Two different clocks — don't conflate them.** *Customer silence* = no inbound customer email since our last outbound. *Case activity* = the most recent of {last outbound email, last internal `CaseComment`}. A case can be customer-quiet yet actively handled (e.g. you logged an internal note that an AE booked a call). Only flag for chase/closure when **both** clocks are stale — never closure-nudge a case you're actively progressing.
+
+> **The case's OWN records are ground truth — read them BEFORE calling anything "unsent," "owed," or "quiet."** Case emails are sent from a shared support address (e.g. `customersupport@salesforce.com`) and live on the case as `EmailMessage` — they do **NOT** land in your personal Gmail, so never infer "no email was sent" from your inbox (or from case age alone). Read the **body** of the latest outbound `EmailMessage` (Step 3a), not just its metadata — resources you're about to "send" may already be in it. And **harvest the AE/case Slack channel link** the Guide mirrors into `CaseComment` (Step 3b) rather than guessing or searching for it.
 
 > **OrgCS MCP is read-only.** This skill only *detects and alerts*. It cannot send follow-ups, change case status, or create records — the user does that in the OrgCS UI. See [[orgcs-mcp-readonly]].
 
@@ -80,9 +82,9 @@ If zero rows: report "No open cases waiting on a customer — you're clear." and
 
 ## Step 3 — Find the real last activity per case (email thread + internal comments)
 
-### Step 3a — Customer/support email thread
+### Step 3a — Customer/support email thread (read the latest outbound BODY)
 
-For all case Ids from Step 2:
+For all case Ids from Step 2, bulk-pull the thread metadata:
 
 ```soql
 SELECT ParentId, Incoming, MessageDate, FromAddress, Subject
@@ -91,7 +93,19 @@ WHERE ParentId IN (<case Ids>)
 ORDER BY MessageDate DESC
 ```
 
-`Incoming = true` → message **from the customer**. `Incoming = false` → **outbound from support** (typically `customersupport@salesforce.com`).
+`Incoming = true` → message **from the customer**. `Incoming = false` → **outbound from support** (typically a shared address like `customersupport@salesforce.com` — which is exactly why this mail never appears in your personal Gmail).
+
+Then, for each case with an outbound message, **read the BODY of the latest outbound** — knowing *that* an email exists isn't enough; you need to know *what it said*. A "send the resources" action is already **done** if that body contains them, so this is what stops a duplicate follow-up:
+
+```soql
+SELECT TextBody, MessageDate, Subject
+FROM EmailMessage
+WHERE ParentId = '<caseId>' AND Incoming = false
+ORDER BY MessageDate DESC
+LIMIT 1
+```
+
+If any INBOUND message is newer than that latest outbound, the customer has replied — the ball is back in our court (not theirs).
 
 ### Step 3b — Internal case comments (the Guide's own activity / next steps)
 
@@ -107,6 +121,7 @@ ORDER BY CreatedDate DESC
 - `IsPublished = false` → **internal note** (not customer-visible). These still count as **case activity** and as evidence of a **next step**.
 - A comment authored by the **case owner** (the Guide, from Step 1 `userId`) within the threshold means the case is *actively handled*, even if the customer email thread is quiet.
 - Scan the most recent comment body for an explicit **next step / scheduled action** (e.g. "call …", "scheduled …", "meeting …", "<weekday> at <time>", "booked", "follow up <date>"). Capture that text — it both *suppresses closure* (Step 5) and *gets surfaced* in the output (Step 6).
+- The comment feed is also where the Guide **mirrors each outbound email** (often with an `EmailMessage` link), and pastes the **AE/case Slack channel link**, canvas links, and to-do notes. **Harvest the Slack channel link from here** rather than guessing or searching — it's the authoritative pointer to the case's AE side-channel, and it confirms who's already been looped in before you recommend a nudge.
 
 > `CaseComment` is fully readable via the OrgCS MCP. The Chatter-style `FeedItem` feed is **not** bulk-queryable (`FeedItem requires a filter by Id`), so it isn't used here — `CaseComment` covers internal notes for this skill.
 
@@ -190,6 +205,7 @@ If **no** ASAP cases: send a short "✅ All caught up — no cases need attentio
 | OrgCS MCP is read-only | By design | Detect + alert only; act in the OrgCS UI |
 | Rollup activity fields are null in OrgCS | Verified May 2026 | Use the EmailMessage thread (Step 3a) + `CaseComment` (Step 3b) |
 | Internal progress lived only in case comments, so customer-quiet cases looked dead | Fixed v1.1 (2026-06-09) | Step 3b reads `CaseComment`; activity override keeps actively-handled cases out of ASAP/closure |
+| Reading only email *metadata* (not the body) surfaced "send resources" chases for cases where the resources were already sent | Fixed v1.2 (2026-07-15) | Step 3a reads the latest outbound `TextBody`; Step 3b harvests the AE/case Slack channel link from the comment feed; never infer "unsent" from personal Gmail or age |
 | `FeedItem` (Chatter feed) not bulk-queryable | Platform (`requires a filter by Id`) | Use `CaseComment` for internal notes; per-record feed reads only if needed |
 | Business-day math ignores holidays | v1 | Note it; treat borderline cases as advisory |
 | Non-email channels (chat, phone) not counted | v1 | Email thread is the primary signal; mention if a case has no email thread |
