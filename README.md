@@ -111,6 +111,12 @@ Beyond the two Agentforce skills above, this repo ships the **daily-driver toolk
 
 > ⭐ = **orchestrator** (routes/synthesizes; delegates the real work to the task skills). The others are single-purpose task skills.
 
+> **Utility — `context-reset`.** One command, `/context-reset`, for the whole checkpoint → `/clear` →
+> resume loop that cures a bloated, over-compacted context that has gone slow: it writes a tight
+> checkpoint, you `/clear`, and a fresh window reloads only that checkpoint. Works the moment it's
+> installed; an optional one-time SessionStart hook makes the resume automatic — see
+> [`SETUP.md` §6](./SETUP.md#6-optional--turn-on-the-context-reset-auto-resume-hook).
+
 > **The post-call motion.** `post-call-360` is the front door after any customer call: one paste of the Gemini notes fans out to a customer recap email (draft), an internal AE/CSM Slack summary, your homework, and a refreshed next-call canvas — and, when the call is anchored to a **case**, a paste-ready internal OrgCS case comment (Published unchecked) so the record lands on the case. Engagements (no case object) keep the Gmail draft as their record. It chains `call-next-steps` (your homework → Google Tasks), `discovery-call-canvas` in next-call mode (the persistent working canvas), and — for a brand-new case — `ae-syncup-channel` (spins up the case channel). The customer email is **never** auto-sent, and the internal summary auto-sends **only** to an internal channel you're already a member of, else it falls back to a DM or a hand-paste draft.
 
 ### Setup — one profile, filled once
@@ -250,6 +256,7 @@ Then restart Claude Code. The skills are available immediately as:
 /ae-syncup-channel
 /brag-book
 /case-closure-hygiene
+/context-reset
 ```
 
 > After installing the daily-workflow skills, run `/setup-profile` once to fill `~/.claude/profile.md` — every skill reads its context from there (see *Setup — one profile, filled once* above). Most skills also need the relevant read-only MCP servers connected (Salesforce support/CRM org, Google Workspace, Slack) — each skill's *Prerequisites* section lists exactly which.

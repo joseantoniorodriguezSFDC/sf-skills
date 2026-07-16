@@ -105,6 +105,48 @@ refreshed next-call canvas.
 
 ---
 
+## 6. Optional — turn on the `context-reset` auto-resume hook
+
+`context-reset` is a **utility skill** (installed already by step 1) that beats the slow, sloppy
+context you get after a long session: `/context-reset` writes a tight checkpoint, you type `/clear`,
+and a fresh window reloads only that checkpoint. It works the moment it's installed.
+
+One optional extra makes the resume **automatic** (no re-typing after `/clear`) and adds a nudge
+right after a compaction. It's a one-time hook registration in **your own** config — two files this
+repo deliberately **does not ship** because they're personal to you:
+
+**a) Register the SessionStart hook.** Open `~/.claude/settings.json` and add this entry to your
+`SessionStart` hooks. If you already have a `SessionStart` matcher (telemetry, aisuite, etc.),
+**append** to its `hooks` array — don't replace what's there:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "$HOME/.claude/skills/context-reset/context-reset-hook.sh" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**b) (Optional) let Claude raise it before the skill loads.** Add a short "Context health" note to
+your `~/.claude/CLAUDE.md` so Claude proactively offers a reset when it notices bloat. The skill's
+own "Auto-suggest" section has the exact wording to paste.
+
+> ⚠️ **Never commit `~/.claude/settings.json` or `~/.claude/CLAUDE.md`** — same rule as `profile.md`
+> and `~/.claude.json`. They hold your personal hooks and instructions. The repo ships only the
+> portable skill + hook script under `skills/context-reset/`; the wiring above stays local to you.
+
+Without the hook, `context-reset` still works — just say "resume" after `/clear` and it picks up the
+last checkpoint by hand.
+
+---
+
 ## Security note
 
 Two files must **never** be committed to git:
