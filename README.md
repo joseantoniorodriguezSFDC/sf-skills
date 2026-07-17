@@ -1,6 +1,6 @@
 # sf-skills
 
-Claude Code skills for Salesforce **Success Architects and Success Guides** working with Agentforce customers.
+Claude Code skills for Salesforce **Success Architects and Success Guides** working with Agentforce customers — plus a small set of **Claude Code optimization skills** (like `context-reset`) that are domain-agnostic and useful in any project.
 
 Built by Jose Antonio Rodriguez — Success Guide, Agentforce Service.
 
@@ -36,6 +36,15 @@ It auto-detects your email, timezone, Slack id, and org from the MCPs you've alr
 ---
 
 ## Skills
+
+This repo ships **two families** of skills — keep them straight when you browse or install:
+
+| Family | What it's for | Skills |
+|---|---|---|
+| 🟦 **Salesforce / Success-Guide skills** | The domain toolkit — Agentforce coaching, feature research, and the read-only daily-driver motion a Success Guide leans on (cases, engagements, calendar, email, post-call follow-up). This is most of the repo, and it's what the [First-time setup](#first-time-setup) profile feeds. | `agentforce-success-guide`, `sf-feature-research`, `daily-driver`, `salesforce-tool-router`, `gmail-priority-check`, `calendar-agenda`, `orgcs-case-age`, `orgcs-engagement-nudge`, `etrab-weekly-note`, `etrab-adoption-plan`, `discovery-call-canvas`, `post-call-360`, `call-next-steps`, `ae-syncup-channel`, `brag-book`, `case-closure-hygiene`, `setup-profile` |
+| ⚙️ **Claude Code optimization skills** | Domain-agnostic utilities that make Claude Code *itself* work better — no Salesforce knowledge, no profile, no MCP servers required. Useful in **any** project. | `context-reset` |
+
+The two flagship Salesforce skills are documented first, then the daily-workflow toolkit, then the optimization family gets its own section: [Claude Code optimization skills](#claude-code-optimization-skills).
 
 ### `sf-feature-research`
 
@@ -102,6 +111,7 @@ Beyond the two Agentforce skills above, this repo ships the **daily-driver toolk
 | `orgcs-case-age` | "Which cases has the customer gone quiet on?" | Salesforce (support org) | ❌ detect + alert |
 | `orgcs-engagement-nudge` | "Which engagements are waiting on a nudge?" | Salesforce + Slack | ⚠️ draft-and-confirm nudge only |
 | `etrab-weekly-note` | Per-account weekly status notes, follow-on to the last one | Salesforce + Slack + Gmail | ❌ read-only (drafts to paste) |
+| `etrab-adoption-plan` | Turn one ETRAB engagement into an actionable adoption plan — blocker map → guide actions → phased plan + paste-ready week-1 task | Salesforce + Slack (+ Google Doc opt.) | ❌ read-only (optional Google Doc) |
 | `discovery-call-canvas` | Turn an account/case into a discovery-prep Slack canvas (or refresh a working canvas after a call) | Salesforce + Slack + web | ✅ creates or refreshes a Slack canvas only |
 | **`post-call-360`** ⭐ | "Wrap up this call" — one paste of call notes → customer email draft + internal Slack summary + your homework + refreshed canvas (+ paste-ready OrgCS case comment for cases) | Salesforce + Slack + Google + web | ⚠️ email draft-only; Slack summary auto-sends to internal targets only; case comment paste-ready (read-only); delegates tasks + canvas |
 | `call-next-steps` | "Log my homework from this call" → due-dated Google Tasks | Gemini notes → Google Tasks | ⚠️ draft-and-confirm; writes Google Tasks only |
@@ -110,12 +120,6 @@ Beyond the two Agentforce skills above, this repo ships the **daily-driver toolk
 | `case-closure-hygiene` | "Is this case ready to close / why isn't it counting?" → closure SOP checklist | Salesforce | ❌ read-only advisory + draft outreach & paste-ready final case comment |
 
 > ⭐ = **orchestrator** (routes/synthesizes; delegates the real work to the task skills). The others are single-purpose task skills.
-
-> **Utility — `context-reset`.** One command, `/context-reset`, for the whole checkpoint → `/clear` →
-> resume loop that cures a bloated, over-compacted context that has gone slow: it writes a tight
-> checkpoint, you `/clear`, and a fresh window reloads only that checkpoint. Works the moment it's
-> installed; an optional one-time SessionStart hook makes the resume automatic — see
-> [`SETUP.md` §6](./SETUP.md#6-optional--turn-on-the-context-reset-auto-resume-hook).
 
 > **The post-call motion.** `post-call-360` is the front door after any customer call: one paste of the Gemini notes fans out to a customer recap email (draft), an internal AE/CSM Slack summary, your homework, and a refreshed next-call canvas — and, when the call is anchored to a **case**, a paste-ready internal OrgCS case comment (Published unchecked) so the record lands on the case. Engagements (no case object) keep the Gmail draft as their record. It chains `call-next-steps` (your homework → Google Tasks), `discovery-call-canvas` in next-call mode (the persistent working canvas), and — for a brand-new case — `ae-syncup-channel` (spins up the case channel). The customer email is **never** auto-sent, and the internal summary auto-sends **only** to an internal channel you're already a member of, else it falls back to a DM or a hand-paste draft.
 
@@ -137,6 +141,30 @@ Each skill's `> ⚙️ Setup:` note names exactly which profile fields it reads 
 ### Subagent discipline
 
 All of these skills follow one rule for when to spin up a Claude Code subagent — see [`SUBAGENTS.md`](./SUBAGENTS.md). Short version: **inline by default; fan out to subagents only when the work is *big-and-offloadable* or *many-and-parallel*; never during a live customer call.** The `daily-driver` and the two `orgcs-*` / `etrab-*` skills gate their fan-out on engagement count so small runs never pay the spawn cost.
+
+---
+
+## Claude Code optimization skills
+
+These are **not** Salesforce skills. They're domain-agnostic utilities that improve how Claude Code *itself* runs — useful whether you're coaching an Agentforce customer or writing code in a completely different repo. They read nothing from `~/.claude/profile.md`, need no MCP servers, and have no `/setup-profile` step.
+
+### `context-reset`
+
+Long Claude Code sessions bloat the context window; after repeated compaction, quality degrades — instructions get missed, details get dropped, work gets sloppy. `context-reset` is the whole **checkpoint → `/clear` → resume** loop in one command:
+
+- **Checkpoint** — when there's live work in the window, `/context-reset` writes a tight, curated checkpoint (goal, status, irreplaceable IDs/links, next steps, gotchas) to `~/.claude/checkpoints/` — *not* a dump of the conversation.
+- **Clear** — you type `/clear` (only the user can; nothing can trigger it programmatically).
+- **Resume** — the fresh window reloads *only* that checkpoint. An optional one-time `SessionStart` hook makes this automatic; otherwise just say "resume."
+
+It also **proactively suggests** a reset when it detects the tell-tale signs of a degraded context (continued-from-compaction, very long session, dropped details) — so you're reminded before you have to notice the slippage yourself.
+
+| Skill | What it does | Reads profile? | MCPs |
+|---|---|---|---|
+| `context-reset` | Checkpoint → `/clear` → auto-resume, to cure a bloated / degraded context | ❌ no | none |
+
+Works the moment it's installed. To turn on the auto-resume hook, see [`SETUP.md` §6](./SETUP.md#6-optional--turn-on-the-context-reset-auto-resume-hook).
+
+> **Why it's split out:** everything else in this repo assumes a Salesforce Success-Guide context and reads your identity from `~/.claude/profile.md`. `context-reset` doesn't — it's a portable Claude Code hygiene tool. Giving it its own family keeps SG-specific and general-purpose utilities from getting muddled, and gives any future optimization skills a clear home.
 
 ---
 
@@ -250,6 +278,7 @@ Then restart Claude Code. The skills are available immediately as:
 /orgcs-case-age
 /orgcs-engagement-nudge
 /etrab-weekly-note
+/etrab-adoption-plan
 /discovery-call-canvas
 /post-call-360
 /call-next-steps
