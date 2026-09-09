@@ -199,6 +199,7 @@ Structure (any language):
 - Keep it under ~180 words.
 - Use `<@USER_ID>` mentions (not @name) so the invitees get pinged on join.
 - No emojis unless the SG has used them recently with this AE.
+- **Re-anchor every date/time to _now_ — never echo a relative date.** Before writing any date or time (a session, a deadline, or a "tomorrow"/"mañana"/"hoy"/"today" carried in from a next-step or a case field), resolve it against the **actual current date/time in your context** and write it as an explicit weekday + date. A next-step written on an earlier day can still say "tomorrow" when the event is really today or already past: if it's today, say "hoy/today"; if its date/time is before now, do **not** present it as upcoming — reframe it in past tense / as a follow-up, or drop the timing entirely if you can't verify the event actually happened. Stating a past session as "mañana/tomorrow" in a message to the AE + CSM is a credibility hit — check the clock, not the phrasing you were handed.
 
 ## Step 8 — Show the plan to the user (mandatory confirm step)
 
@@ -243,6 +244,20 @@ Return both:
 - The Slack channel permalink (so the user can pin it / bookmark it).
 - The kickoff message permalink (so the user can audit what was posted).
 
+## Step 9.5 — Register the channel with the cockpit (best-effort — prevents the "Find channel" gap)
+
+The Claudeforce cockpit's Daily 360 links an account to its Slack channel from a LOCAL store (`data/account-channels.json`), **not** by live-searching Slack by naming convention. So a channel this skill just created stays **unlinked** (shows "Find channel") until something registers it. Close that gap right here: after a successful create, best-effort POST the account→channel mapping to the local cockpit API so `slackChannelFor()` resolves it on the next roll-up.
+
+```bash
+curl -s -m 3 -X POST "http://127.0.0.1:${PORT:-4141}/api/account-channels" \
+  -H 'Content-Type: application/json' \
+  -d '{"account":"<Account.Name EXACTLY as returned by OrgCS>","channelId":"<new channel id>","name":"<channel name>"}' >/dev/null 2>&1 || true
+```
+
+- Use the **exact** `Account.Name` from the Step 1 OrgCS query — the cockpit keys the map on a normalized form of that same name, so it must match what the Daily 360 shows.
+- **Best-effort:** if the cockpit isn't running (e.g. the skill was run from a plain terminal), the curl fails silently and nothing breaks — the channel is still created and its permalinks are still returned.
+- Requires shell access — the same run context that could create the Slack channel already has it.
+
 ## Step 10 — Confirm and offer next steps
 
 After both writes succeed, briefly confirm and offer one logical next step (e.g. "Want me to draft a similar channel for the sibling-entity AE?" or "Want me to set a follow-up reminder for 2 business days if no reply?"). Don't add extra work the user didn't ask for.
@@ -259,6 +274,7 @@ If the channel-creation succeeded but the invite failed for one user (e.g. user 
 - **Don't paste the customer's full `Description`** into the kickoff — paraphrase. The customer may have written it in confidence.
 - **Don't assume the case account is the operating account.** ES utilities/holding groups frequently file cases on the parent while the work belongs to a sibling — flag it in the kickoff.
 - **Don't create the channel before showing the plan.** Channel creation pings the invitees instantly via Slack; one wrong invitee is socially costly. The Step 8 confirm gate is non-negotiable.
+- **Don't trust relative dates in carried context.** Next-steps and case notes are usually written on an earlier day, so a phrase like "tomorrow's Wed session" goes stale by the time the skill runs — by then it may be today or already past. Re-anchor every date/time to the real current date/time before it lands in the kickoff, and never describe an event that has already occurred as still upcoming.
 - **Always include the calendar link.** It is a non-negotiable part of every kickoff produced by this skill (`booking_link` from your profile).
 - **No `Type` field on Case in OrgCS** — see [[headless360-audit-soql-notes]] for similar query gotchas.
 - **Stay under Slack's 80-char channel name limit.** Trim the slug, not the case-number suffix (the suffix is the discoverability anchor).
