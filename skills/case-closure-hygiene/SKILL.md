@@ -3,8 +3,8 @@ name: case-closure-hygiene
 description: "Runs a support org's closure SOP checklist on a Success Guide's cases — so real work lands as a countable Completed close, cancelations are coded correctly (Duplicate / out-of-scope Redirect), CSAT actually fires, and open cases stay hygienic (regular comments, follow-up date). Read-only + draft: it inspects a case, tells you exactly which fields to fix (you set them in the support-org UI), and drafts SOP outreach for non-responsive customers. TRIGGER when: user says 'closure check', 'is this case ready to close', 'case hygiene', 'clean up my cases', 'why isn't this counting', or before closing/canceling a case. DO NOT TRIGGER when: the user wants qualitative-contribution logging (that's /brag-book) or the daily digest (that's the cron)."
 metadata:
   type: orchestrator
-  version: "1.4"
-  last_updated: "2026-07-15"
+  version: "1.6"
+  last_updated: "2026-09-18"
   author: "Success Guide"
   audience: "Success Guides protecting closure/cancelation/CSAT metrics"
 ---
@@ -111,7 +111,7 @@ WHERE ParentId = '<caseId>' ORDER BY MessageDate DESC
 SELECT TextBody, MessageDate, Subject FROM EmailMessage
 WHERE ParentId = '<caseId>' AND Incoming = false ORDER BY MessageDate DESC LIMIT 1
 ```
-- Count **outbound** emails since last inbound → the attempt number for the non-responsive clock.
+- **Count outreach attempts from BOTH sources** — outbound `EmailMessage` since the last inbound **AND** outreach-logged `CaseComment`s. Touches sent/logged through a support console often land as **case comments, not `EmailMessage` rows**, so an email-only count under-reads and misfires the verdict. This **combined** count is the attempt number that drives the Step 2.5 ladder — if the two sources disagree, take the higher and note it.
 
 ## Step 1.5 — Entitlement lookup: Account → Asset Line Items (editions, add-ons, license counts)
 
@@ -158,6 +158,21 @@ Outreach clock (if non-responsive):
 
 - **Never invent** a Completed close where work wasn't done — flag "verify delivery."
 - For duplicates / out-of-scope / wrong-program, state the correct taxonomy row + receiving team / new program.
+
+## Step 2.5 — Outreach state ladder (the 3-over-2-weeks non-responsive clock)
+
+**When the customer has gone quiet, the next action is DETERMINISTIC from the attempt count — don't open a fresh outreach, and don't jump to cancel.** Take the **combined** attempt number from Step 1 (outbound `EmailMessage` **+** outreach `CaseComment`s), then walk the ladder:
+
+| Attempts already done | Next action | The email must… | Notify account team? |
+|---|---|---|---|
+| **0–1** | Send the next touch (1st / 2nd), space ~1 week | read as a normal follow-up + booking link | no |
+| **2** | **Send the 3rd = FINAL touch** | **state clearly it is the final follow-up** ("if I don't hear back, I'll close this request") | **YES — draft an internal heads-up to the account team** that you're on the final outreach and will close *Non-Responsive* if silent by `<last-attempt + 14d, or +3 business days>` |
+| **3 sent + ~14d silence** | **Close as Canceled – Customer Non-Responsive** (set the cancel Sub-Status + close-cause + a "Non-Responsive" sub-cause) | — | **YES — notify the account team** that the customer couldn't be reached (SOP close step) |
+
+- **"2 done → the 3rd is the FINAL touch" is the load-bearing rule.** Two prior outreaches means the next email is the last one, and it MUST say so. Never treat a third contact as just another nudge, and never silently cancel before that final touch has gone out.
+- **Heads-up the account team AT the final touch — not only at close.** Draft an internal note to the **core account executive** (plus the customer success manager only for the top support tier) in the case's internal Slack channel (fall back to a DM): *"On final outreach for <case> / <account>; will close Non-Responsive if no reply by <date>. Flag me if you want to try saving it with your relationship first."* This gives the account team a window to intervene **before** the case closes. **Draft + review-and-send, never auto**; internal only, never the customer.
+- **Self-service exception:** if the ask is better solved self-service, the ladder is only **2 touches** (First / Second — the 2nd says "we'll close within 3 business days"), then cancel.
+- Log a case comment **+** bump `Next_Follow_up_Date__c` on **every** touch.
 
 ## Step 3 — Draft outreach (only when the verdict needs it)
 
@@ -213,7 +228,7 @@ When a case owes the customer a **substantive answer or resource that needs rese
 | Support-org MCP may be read-only | By design | Skill advises exact field values; user edits in the UI |
 | Can't write the final case comment | Handled | Drafts it paste-ready (Published unchecked); auto-inserts as `CaseComment(IsPublished=false)` if a write-enabled support-org MCP lands ([[orgcs-case-comment-paste-ready]]) |
 | "Was real work delivered?" isn't always machine-knowable | By design | Flag "verify delivery" before coding Completed |
-| Outreach-attempt count inferred from EmailMessage only | v1 | Cross-check with case comments; user confirms |
+| Outreach-attempt count under-read (EmailMessage-only), so "2 done → 3rd is FINAL" and the account-team heads-up were missed | Fixed v1.6 | Step 1 counts BOTH outbound `EmailMessage` AND outreach `CaseComment`s; **Step 2.5 ladder** makes "2 done → send 3rd = FINAL touch (email states it's final) + notify the account team" deterministic, and the close-time notify explicit |
 | Email metadata alone can't confirm deliverables were sent, so a delivered case looked like it still owed a "send resources" email | Fixed v1.1 (2026-07-15) | Step 1 reads the latest outbound `TextBody` + harvests the account-team / case Slack channel link from `CaseComment`; never infer "unsent" from personal Gmail or age |
 | Field API names / picklist values are org-specific | Data | Verify with `getObjectSchema('Case')` before trusting the SOQL |
 | A direct filter on the Asset Line Items external object (`… WHERE <AccountIdField>=…`) can silently return 0 rows for a federated account (OData filter doesn't push down) | Fixed v1.3 (2026-07-15) | Step 1.5 reads Asset Line Items via the **Account relationship subquery** (`(SELECT … FROM Asset_Line_Items__r) FROM Account WHERE Id=…`); never trust a zero from the direct-filter form; verify object/field names with `getObjectSchema('Account')` |
